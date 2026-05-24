@@ -196,7 +196,7 @@ describe('quizService', () => {
 
   it('gradeQuestion handles multiple choice with partial credit', () => {
     const q = { type: 'multiple' as const, answer: [0, 2] };
-    expect(quizService.gradeQuestion(q, [0, 2])).toEqual({ isCorrect: true, partialCorrect: true });
+    expect(quizService.gradeQuestion(q, [0, 2])).toEqual({ isCorrect: true, partialCorrect: false });
     expect(quizService.gradeQuestion(q, [0])).toEqual({ isCorrect: false, partialCorrect: true });
     expect(quizService.gradeQuestion(q, [1])).toEqual({ isCorrect: false, partialCorrect: false });
   });
@@ -219,7 +219,8 @@ import type { Question, QuizRecord } from '../shared/types';
 export const quizService = {
   gradeQuestion(question: { type: Question['type']; answer: number[] }, selected: number[]): { isCorrect: boolean; partialCorrect: boolean } {
     const correct = question.answer.sort().join(',') === selected.sort().join(',');
-    const partial = correct || selected.some((a) => question.answer.includes(a));
+    // Partial: not fully correct, but all selected choices are in the answer set (no wrong choices picked)
+    const partial = !correct && selected.length > 0 && selected.every((a) => question.answer.includes(a));
     return { isCorrect: correct, partialCorrect: partial };
   },
 
@@ -680,7 +681,6 @@ import { useDisclosure } from '@mantine/hooks';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { useQuizStore } from '../../stores/quizStore';
-import { useNoteStore } from '../../stores/noteStore';
 import { QuizProgress } from '../components/QuizProgress';
 import { QuizQuestion } from '../components/QuizQuestion';
 import { QuizResult } from '../components/QuizResult';
@@ -708,8 +708,7 @@ export function QuizPage() {
   const startQuiz = async () => {
     if (!id) return;
     await store.startQuiz(id, selMode, selOrder);
-    const { loadNotes } = useNoteStore.getState();
-    await loadNotes(id);
+    // Note: note loading is deferred to P4 (Task 29). In P3, the note panel is not yet visible.
     setTimer(0);
     closeSetup();
   };

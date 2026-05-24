@@ -60,16 +60,82 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import type { Question, QuizRecord, Note } from '../shared/types';
 
+// Register built-in Roboto (from pdfmake vfs)
 (pdfMake as any).vfs = pdfFonts.vfs;
 
-export interface ExportOptions {
-  questionIds: string[];
-  includeAnswers: boolean;
-  includeExplanations: boolean;
-  includeNotes: boolean;
-  includeStats: boolean;
-  layout: 'precise' | 'quick';
-  bankName: string;
+// Register CJK font for Chinese text support.
+// NotoSansSC-Regular is fetched at runtime and cached.
+// Fallback: if fetch fails, pdfmake uses Roboto (no Chinese rendering).
+let cjkFontReady = false;
+
+export async function initCJKFont(): Promise<void> {
+  if (cjkFontReady) return;
+  try {
+    const resp = await fetch(
+      'https://cdn.jsdelivr.net/npm/@canvas-fonts/notosanssc@1.0.0/files/notosanssc-regular.otf'
+    );
+    if (resp.ok) {
+      const buf = await resp.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(buf).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+      (pdfMake as any).vfs['NotoSansSC-Regular.otf'] = base64;
+      // Register in pdfmake font catalog
+      (pdfMake as any).fonts = {
+        ...((pdfMake as any).fonts || {}),
+        NotoSansSC: {
+          normal: 'NotoSansSC-Regular.otf',
+          bold: 'NotoSansSC-Regular.otf', // no bold variant; uses faux-bold
+        },
+      };
+      cjkFontReady = true;
+    }
+  } catch {
+    console.warn('CJK font download failed, PDF Chinese text may not render');
+  }
+}
+
+// Type label in Chinese — safe to use after initCJKFont
+function typeLabel(type: Question['type']): string {
+  if (type === 'single') return '单选题';
+  if (type === 'multiple') return '多选题';
+  return '判断题';
+}
+```
+
+Then update the default style to use NotoSansSC as primary with Roboto fallback:
+
+```typescript
+// In generatePrecisePDF, update the pdfMake.createPdf call:
+const doc = pdfMake.createPdf({
+  pageSize: 'A4',
+  pageMargins: [40, 40, 40, 40],
+  content,
+  styles: {
+    title: { fontSize: 18, bold: true },
+    subtitle: { fontSize: 10, color: '#7a7568' },
+    statText: { fontSize: 10, alignment: 'center' },
+    statsBox: { fillColor: '#f3efe8', fillOpacity: 1 },
+  },
+  defaultStyle: {
+    font: 'NotoSansSC',  // Chinese-supporting font
+    fontSize: 11,
+    color: '#2c2416',
+    lineHeight: 1.5,
+  },
+});
+```
+
+In `ExportPage.tsx`, call `initCJKFont()` before `generatePrecisePDF`:
+
+```typescript
+import { generatePrecisePDF, generateQuickPDF, initCJKFont } from '../../services/pdfExportService';
+
+// In handleExport, before generatePrecisePDF:
+if (layout === 'precise') {
+  await initCJKFont();
+  const blob = await generatePrecisePDF(data, opts);
+  saveAs(blob, `${bank.name}.pdf`);
 }
 
 interface QuestionData {

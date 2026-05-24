@@ -75,8 +75,8 @@ Expected: project scaffolded, `package.json` created.
 
 ```bash
 npm install
-npm install @mantine/core @mantine/hooks @mantine/tiptap @mantine/charts @mantine/notifications react-router-dom zustand dexie react-icons recharts dayjs
-npm install -D vitest @testing-library/react @testing-library/jest-dom jsdom
+npm install @mantine/core @mantine/hooks @mantine/tiptap @mantine/charts @mantine/notifications react-router-dom zustand dexie @tabler/icons-react recharts dayjs
+npm install -D vitest @testing-library/react @testing-library/jest-dom jsdom fake-indexeddb
 ```
 
 Expected: all packages installed, `package.json` updated.
@@ -112,10 +112,19 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: [],
+    setupFiles: ['./tests/setup.ts'],
   },
 });
 ```
+
+- [ ] **Step 4a: Create `tests/setup.ts` — fake-indexeddb initialization**
+
+```typescript
+// tests/setup.ts
+import 'fake-indexeddb/auto';
+```
+
+This is needed because Dexie.js requires IndexedDB which is not available in jsdom.
 
 - [ ] **Step 5: Verify dev server starts**
 
@@ -134,7 +143,131 @@ git commit -m "feat(p1): scaffold vite + react + ts project with all dependencie
 
 ---
 
-### Task 2: Define shared types
+### Task 2: Initialize Tauri v2 shell
+
+**Files:**
+- Create: `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `src-tauri/build.rs`, `src-tauri/src/main.rs`, `src-tauri/icons/`
+
+- [ ] **Step 1: Check Rust toolchain**
+
+```bash
+rustc --version && cargo --version
+```
+
+Expected: Rust ≥ 1.77 installed. If not: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+- [ ] **Step 2: Install Tauri CLI and init**
+
+```bash
+cargo install tauri-cli --version "^2"
+npm install -D @tauri-apps/cli@^2 @tauri-apps/api@^2
+npx tauri init
+```
+
+When prompted:
+- App name: `ExLocal`
+- Window title: `ExLocal`
+- Dev server URL: `http://localhost:5173`
+- Frontend dist path: `../dist`
+- Frontend dev command: `npm run dev`
+- Frontend build command: `npm run build`
+
+- [ ] **Step 3: Update `src-tauri/tauri.conf.json` with window settings**
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/nicedoc/tauri/main/packages/tauri-utils/schema.json",
+  "productName": "ExLocal",
+  "version": "0.1.0",
+  "identifier": "com.exbook.exlocal",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "ExLocal",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}
+```
+
+- [ ] **Step 4: Update `src-tauri/src/main.rs` — minimal shell**
+
+```rust
+// Prevents additional console window on Windows in release
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+fn main() {
+    tauri::Builder::default()
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+```
+
+- [ ] **Step 5: Update `src-tauri/Cargo.toml`**
+
+```toml
+[package]
+name = "exlocal"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "exlocal_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+```
+
+- [ ] **Step 6: Verify Tauri builds**
+
+```bash
+cargo build --manifest-path src-tauri/Cargo.toml
+```
+
+Expected: Rust compilation succeeds.
+
+- [ ] **Step 7: Update `package.json` add scripts**
+
+```json
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  }
+}
+```
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add src-tauri/ package.json
+git commit -m "feat(p1): add tauri v2 shell with minimal rust config"
+```
+
+---
+
+### Task 3: Define shared types
 
 **Files:**
 - Create: `src/shared/types.ts`
@@ -211,7 +344,7 @@ git commit -m "feat(p1): add shared type definitions"
 
 ---
 
-### Task 3: Dexie database setup and schema
+### Task 4: Dexie database setup and schema
 
 **Files:**
 - Create: `src/repo/db.ts`
@@ -260,7 +393,7 @@ git commit -m "feat(p1): add Dexie database schema"
 
 ---
 
-### Task 4: Bank Repo layer (CRUD operations)
+### Task 5: Bank Repo layer (CRUD operations)
 
 **Files:**
 - Create: `src/repo/bankRepo.ts`
@@ -414,7 +547,7 @@ git commit -m "feat(p1): add bank repo with CRUD operations and tests"
 
 ---
 
-### Task 5: Bank Service layer
+### Task 6: Bank Service layer
 
 **Files:**
 - Create: `src/services/bankService.ts`
@@ -475,7 +608,7 @@ git commit -m "feat(p1): add bank service layer with validation"
 
 ---
 
-### Task 6: Zustand stores
+### Task 7: Zustand stores
 
 **Files:**
 - Create: `src/stores/uiStore.ts`
@@ -593,7 +726,7 @@ git commit -m "feat(p1): add zustand stores for ui and bank"
 
 ---
 
-### Task 7: Mantine theme and global styles
+### Task 8: Mantine theme and global styles
 
 **Files:**
 - Create: `src/theme.ts`
@@ -712,7 +845,7 @@ git commit -m "feat(p1): add mantine theme and global css with light/dark"
 
 ---
 
-### Task 8: Layout components + Router + Entry point
+### Task 9: Layout components + Router + Entry point
 
 **Files:**
 - Create: `src/ui/components/Sidebar.tsx`
@@ -931,13 +1064,7 @@ export function BankListPage() {
 }
 ```
 
-- [ ] **Step 7: Install icon package**
-
-```bash
-npm install @tabler/icons-react
-```
-
-- [ ] **Step 8: Verify dev server renders**
+- [ ] **Step 7: Verify dev server renders**
 
 ```bash
 npm run dev
@@ -945,7 +1072,7 @@ npm run dev
 
 Expected: App renders with sidebar and empty bank list.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/ui/components/Sidebar.tsx src/ui/components/AppLayout.tsx src/ui/components/EmptyState.tsx src/ui/pages/BankListPage.tsx src/App.tsx src/main.tsx
@@ -954,16 +1081,168 @@ git commit -m "feat(p1): add layout components, router, and bank list page"
 
 ---
 
-### Task 9: Bank Create/Edit Modal
+### Task 10: Bank Create/Edit Modal
 
 **Files:**
 - Modify: `src/ui/pages/BankListPage.tsx`
 
-Replace `BankListPage.tsx` with the full version including create/edit/delete modal and card grid. See conversation for complete implementation.
+Replace the placeholder `BankListPage.tsx` with the full version:
 
 - [ ] **Step 1: Implement full BankListPage with modal**
 
-Refer to the conversation for the complete `BankListPage.tsx` implementation with create/edit modal and card grid.
+```typescript
+// src/ui/pages/BankListPage.tsx
+import { Box, Title, Button, Group, Text, Modal, TextInput, Textarea, Card, Badge, TagsInput } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import { IconPlus, IconFileImport, IconEdit, IconTrash } from '@tabler/icons-react';
+import { useEffect, useState } from 'react';
+import { useBankStore } from '../../stores/bankStore';
+import { EmptyState } from '../components/EmptyState';
+import type { Bank } from '../../shared/types';
+
+export function BankListPage() {
+  const { banks, loading, loadBanks, createBank, updateBank, deleteBank } = useBankStore();
+  const [opened, { open, close }] = useDisclosure(false);
+  const [editingBank, setEditingBank] = useState<Bank | null>(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { loadBanks(); }, []);
+
+  const handleOpenCreate = () => {
+    setEditingBank(null);
+    setName('');
+    setDescription('');
+    setTags([]);
+    open();
+  };
+
+  const handleOpenEdit = (bank: Bank) => {
+    setEditingBank(bank);
+    setName(bank.name);
+    setDescription(bank.description);
+    setTags(bank.tags);
+    open();
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      if (editingBank) {
+        await updateBank(editingBank.id, { name, description, tags });
+      } else {
+        await createBank({ name, description, tags });
+      }
+      close();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (bank: Bank) => {
+    if (confirm(`确定删除题库「${bank.name}」吗？此操作不可撤销。`)) {
+      await deleteBank(bank.id);
+    }
+  };
+
+  const getStatusBadge = (bank: Bank) => {
+    if (bank.questionCount === 0) return <Badge color="gray" variant="light">空题库</Badge>;
+    return <Badge color="slate" variant="light">{bank.questionCount} 题</Badge>;
+  };
+
+  if (loading) return <Text p="xl">加载中...</Text>;
+
+  return (
+    <Box>
+      <Box style={{ borderBottom: '1px solid var(--border-light)', padding: '16px 24px', background: 'var(--bg-surface)' }}>
+        <Group justify="space-between">
+          <Box>
+            <Title order={2}>题库</Title>
+            <Text size="xs" c="dimmed">{banks.length} 个题库</Text>
+          </Box>
+          <Group gap="sm">
+            <Button variant="default" leftSection={<IconFileImport size={16} />}>导入题库</Button>
+            <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreate}>新建题库</Button>
+          </Group>
+        </Group>
+      </Box>
+
+      <Box p="xl">
+        {banks.length === 0 ? (
+          <EmptyState title="还没有题库" description="创建你的第一个题库，或导入别人的题库文件">
+            <Group>
+              <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreate}>新建题库</Button>
+              <Button variant="default" leftSection={<IconFileImport size={16} />}>导入题库</Button>
+            </Group>
+          </EmptyState>
+        ) : (
+          <Box style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+            {banks.map((bank) => (
+              <Card key={bank.id} shadow="sm" padding="lg" radius="md" withBorder
+                style={{ cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+              >
+                <Group justify="space-between" mb="xs">
+                  <Text fw={600} style={{ fontFamily: 'var(--font-display)' }}>{bank.name}</Text>
+                  <Group gap={4}>
+                    <Button variant="subtle" size="xs" p={4} onClick={(e) => { e.stopPropagation(); handleOpenEdit(bank); }}>
+                      <IconEdit size={14} />
+                    </Button>
+                    <Button variant="subtle" size="xs" p={4} color="red" onClick={(e) => { e.stopPropagation(); handleDelete(bank); }}>
+                      <IconTrash size={14} />
+                    </Button>
+                  </Group>
+                </Group>
+                <Text size="sm" c="dimmed" mb="md" lineClamp={2}>{bank.description || '暂无描述'}</Text>
+                <Group justify="space-between">
+                  {getStatusBadge(bank)}
+                  <Text size="xs" c="dimmed">{new Date(bank.updatedAt).toLocaleDateString('zh-CN')}</Text>
+                </Group>
+              </Card>
+            ))}
+          </Box>
+        )}
+      </Box>
+
+      <Modal opened={opened} onClose={close} title={editingBank ? '编辑题库' : '新建题库'} centered>
+        <TextInput
+          label="题库名称"
+          placeholder="输入题库名称"
+          value={name}
+          onChange={(e) => setName(e.currentTarget.value)}
+          required
+          mb="md"
+          data-autofocus
+        />
+        <Textarea
+          label="描述"
+          placeholder="题库描述（可选）"
+          value={description}
+          onChange={(e) => setDescription(e.currentTarget.value)}
+          mb="md"
+          minRows={2}
+        />
+        <TagsInput
+          label="标签"
+          placeholder="添加标签后按回车"
+          value={tags}
+          onChange={setTags}
+          mb="md"
+        />
+        <Group justify="flex-end" mt="lg">
+          <Button variant="default" onClick={close}>取消</Button>
+          <Button onClick={handleSave} loading={saving} disabled={!name.trim()}>
+            {editingBank ? '保存' : '创建'}
+          </Button>
+        </Group>
+      </Modal>
+    </Box>
+  );
+}
+```
 
 - [ ] **Step 2: Verify dev server and test flow**
 
@@ -982,7 +1261,7 @@ git commit -m "feat(p1): add bank create, edit, delete modal and card grid"
 
 ---
 
-### Task 10: Verify P1 complete
+### Task 11: Verify P1 complete
 
 - [ ] **Step 1: Run all tests**
 

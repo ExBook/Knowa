@@ -649,6 +649,27 @@ npm run dev
 
 Test: do quiz → navigate to dashboard → verify stats, charts, tag table, timeline, clear records.
 
+- [ ] **Step 3a: Add Clear Records button to BankDetailPage**
+
+In `src/ui/pages/BankDetailPage.tsx`, add to the toolbar:
+
+```typescript
+import { quizRecordRepo } from '../../repo/quizRecordRepo';
+
+// Add this button in the toolbar Group:
+<Button variant="light" color="red" size="xs" onClick={async () => {
+  if (!id) return;
+  if (confirm('确定清空该题库的所有做题记录吗？此操作不可撤销。')) {
+    await quizRecordRepo.deleteByBankId(id);
+    alert('已清空做题记录');
+  }
+}}>
+  清空记录
+</Button>
+```
+
+Both BankDetailPage and DashboardPage now have a clear records entry point.
+
 - [ ] **Step 4: Commit**
 
 ```bash
