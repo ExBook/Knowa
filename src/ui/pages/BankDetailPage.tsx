@@ -1,4 +1,5 @@
-import { Box, Title, Group, Button, Text, Badge, Modal, ActionIcon, Alert, Tooltip, Divider } from '@mantine/core';
+import { Box, Title, Group, Button, Text, Badge, Modal, ActionIcon, Alert, Tooltip, Divider, Stack } from '@mantine/core';
+import katex from 'katex';
 import { useDisclosure } from '@mantine/hooks';
 import { IconPlus, IconFileImport, IconEdit, IconTrash, IconDownload, IconArrowLeft, IconPlayerPlay, IconChartBar, IconFileTypePdf, IconFolder, IconAlertTriangle, IconH1, IconH2, IconH3, IconBold, IconItalic, IconCode, IconPhoto, IconLink, IconList, IconListNumbers, IconBlockquote, IconSeparator, IconMath, IconMathFunction } from '@tabler/icons-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
@@ -21,6 +22,22 @@ function extractText(node: any): string {
     return parts.join(' ');
   }
   return '';
+}
+
+function renderPreviewText(text: string): string {
+  if (!text) return '(空)';
+  // Render $...$ as inline KaTeX
+  try {
+    return text.replace(/\$([^$]+)\$/g, (_, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false });
+      } catch {
+        return `$${formula}$`;
+      }
+    });
+  } catch {
+    return text;
+  }
 }
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -271,27 +288,34 @@ export function BankDetailPage() {
           </Box>
 
           {/* Right: Preview */}
-          <Box style={{ width: 240, borderLeft: '1px solid var(--border)', background: 'var(--bg-muted)', padding: 12, overflowY: 'auto', maxHeight: 420 }}>
+          <Box style={{ width: 280, borderLeft: '1px solid var(--border)', background: 'var(--bg-muted)', padding: 12, overflowY: 'auto', maxHeight: 420 }}>
             <Text size="xs" fw={600} c="dimmed" mb={8}>
               {(() => { const p = parseMarkdown(markdownText); return `${p.length} 道题`; })()}
             </Text>
             {markdownText.trim() ? (
-              parseMarkdown(markdownText).map((q, i) => (
-                <Box key={i} mb={8} style={{ borderBottom: i < parseMarkdown(markdownText).length - 1 ? '1px solid var(--border-light)' : 'none', paddingBottom: 8 }}>
-                  <Group gap={4} mb={2}>
-                    <Badge size="xs" variant="light" color="slate">{i + 1}</Badge>
-                    <Badge size="xs" variant="outline" color={q.type === 'single' ? 'blue' : q.type === 'multiple' ? 'green' : 'orange'}>
-                      {q.type === 'single' ? '单选' : q.type === 'multiple' ? '多选' : '判断'}
-                    </Badge>
-                  </Group>
-                  <Text size="xs" lineClamp={2}>{extractText(q.body) || '(空题干)'}</Text>
-                  {q.tags.length > 0 && (
-                    <Group gap={2} mt={2}>
-                      {q.tags.map((t, ti) => <Badge key={ti} size="xs" variant="default" color="gray">{t}</Badge>)}
+              parseMarkdown(markdownText).map((q, i) => {
+                const answerLabels = q.answer.map((a) => String.fromCharCode(65 + a)).join(', ');
+                return (
+                  <Box key={i} mb={10} style={{ borderBottom: i < parseMarkdown(markdownText).length - 1 ? '1px solid var(--border-light)' : 'none', paddingBottom: 10 }}>
+                    <Group gap={4} mb={4}>
+                      <Badge size="xs" variant="light" color="slate">{i + 1}</Badge>
+                      <Badge size="xs" variant="outline" color={q.type === 'single' ? 'blue' : q.type === 'multiple' ? 'green' : 'orange'}>
+                        {q.type === 'single' ? '单选' : q.type === 'multiple' ? '多选' : '判断'}
+                      </Badge>
                     </Group>
-                  )}
-                </Box>
-              ))
+                    <Box style={{ fontSize: '0.78rem', lineHeight: '1.5', wordBreak: 'break-word' }}
+                      dangerouslySetInnerHTML={{ __html: renderPreviewText(extractText(q.body)) }} />
+                    <Group gap={4} mt={4}>
+                      <Text size="xs" c="dimmed">答案: {answerLabels || '未设'}</Text>
+                      {q.tags.length > 0 && (
+                        <Group gap={2}>
+                          {q.tags.map((t, ti) => <Badge key={ti} size="xs" variant="default" color="gray">{t}</Badge>)}
+                        </Group>
+                      )}
+                    </Group>
+                  </Box>
+                );
+              })
             ) : (
               <Text size="xs" c="dimmed" fs="italic">在左侧输入或拖入 .md 文件即可预览</Text>
             )}
