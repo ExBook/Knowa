@@ -1,4 +1,4 @@
-import { Box, Title, Group, Button, Text, Card, Badge, Modal, Tabs, ActionIcon, Alert } from '@mantine/core';
+import { Box, Title, Group, Button, Text, Badge, Modal, ActionIcon, Alert } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconPlus, IconFileImport, IconEdit, IconTrash, IconDownload, IconArrowLeft, IconPlayerPlay, IconChartBar, IconFileTypePdf, IconFolder, IconAlertTriangle } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
@@ -23,11 +23,19 @@ function extractText(node: any): string {
   return '';
 }
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.readAsDataURL(file);
+  });
+}
+
 export function BankDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { banks, loadBanks } = useBankStore();
-  const { questions, loading, loadQuestions, createQuestion, bulkCreateQuestions, deleteQuestion } = useQuestionStore();
+  const { questions, loadQuestions, bulkCreateQuestions, deleteQuestion } = useQuestionStore();
   const bank = banks.find((b) => b.id === id);
 
   const [markdownText, setMarkdownText] = useState('');
@@ -39,17 +47,15 @@ export function BankDetailPage() {
     if (id) loadQuestions(id);
   }, [id]);
 
-  const handleFileDrop = async (files: File[]) => {
+  const handleFiles = async (files: File[]) => {
     const mdFile = files.find((f) => f.name.endsWith('.md'));
     if (!mdFile) return;
     let text = await mdFile.text();
 
-    // Build image map from dropped files and replace refs in markdown
     for (const file of files) {
       const ext = file.name.split('.').pop()?.toLowerCase();
       if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext || '')) {
         const dataUrl = await fileToDataUrl(file);
-        // Replace ![alt](filename) with data URL
         const escaped = file.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         text = text.replace(new RegExp(`!\\[([^\\]]*)\\]\\(${escaped}\\)`, 'g'), `![$1](${dataUrl})`);
       }
@@ -59,15 +65,7 @@ export function BankDetailPage() {
     openMdModal();
   };
 
-  const fileToDataUrl = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleMarkdownImport = async () => {
+  const handleImport = async () => {
     if (!id) return;
     setImporting(true);
     try {
@@ -113,8 +111,8 @@ export function BankDetailPage() {
           <Group gap="sm">
             <Button variant="default" leftSection={<IconFileImport size={16} />} component="label" htmlFor="bank-drop-trigger">
               导入题目
-              <input id="bank-drop-trigger" type="file" accept=".md" style={{ display: 'none' }}
-                onChange={(e) => { const files = Array.from(e.target.files || []); if (files.length) handleFileDrop(files); }} />
+              <input id="bank-drop-trigger" type="file" accept=".md,.png,.jpg,.jpeg,.gif,.svg,.webp" multiple style={{ display: 'none' }}
+                onChange={(e) => { const files = Array.from(e.target.files || []); if (files.length) handleFiles(files); }} />
             </Button>
             <Button variant="default" leftSection={<IconDownload size={16} />} onClick={() => handleExport(false)}>导出共享</Button>
             <Button variant="default" leftSection={<IconDownload size={16} />} onClick={() => handleExport(true)}>导出完整</Button>
@@ -135,63 +133,60 @@ export function BankDetailPage() {
         </Alert>
       )}
 
-      <Tabs defaultValue="list" p="md">
-        <Tabs.List>
-          <Tabs.Tab value="list">题目列表</Tabs.Tab>
-          <Tabs.Tab value="import">导入</Tabs.Tab>
-        </Tabs.List>
+      <Box p="md">
+        <Group mb="md">
+          <Button leftSection={<IconPlus size={16} />} onClick={() => navigate(`/bank/${id}/editor/new`)}>添加题目</Button>
+          <Button variant="default" leftSection={<IconFileImport size={16} />} onClick={() => { setMarkdownText(''); openMdModal(); }}>Markdown 导入</Button>
+        </Group>
 
-        <Tabs.Panel value="list" pt="md">
-          <Group mb="md">
-            <Button leftSection={<IconPlus size={16} />} onClick={() => navigate(`/bank/${id}/editor/new`)}>添加题目</Button>
-            <Button variant="default" leftSection={<IconPlus size={16} />} onClick={openMdModal}>Markdown 批量导入</Button>
-          </Group>
-
-          {questions.length === 0 ? (
-            <EmptyState title="还没有题目" description="添加第一道题目，或从 Markdown / .exbank 导入">
-              <Group>
-                <Button leftSection={<IconPlus size={16} />} onClick={() => navigate(`/bank/${id}/editor/new`)}>添加题目</Button>
-              </Group>
-            </EmptyState>
-          ) : (
-            <Box>
-              {questions.map((q, idx) => (
-                <Box key={q.id} style={{ padding: '12px 0', borderBottom: '1px solid var(--border-light)' }}>
-                  <Group justify="space-between">
-                    <Group gap="sm">
-                      <Badge variant="light" size="sm">{idx + 1}</Badge>
-                      <Text size="sm" style={{ maxWidth: 500 }} truncate>{extractText(q.body)}</Text>
-                      <Badge size="xs" color="slate" variant="outline">
-                        {q.type === 'single' ? '单选' : q.type === 'multiple' ? '多选' : '判断'}
-                      </Badge>
-                    </Group>
-                    <Group gap={4}>
-                      <ActionIcon variant="subtle" size="sm" onClick={() => navigate(`/bank/${id}/editor/${q.id}`)}>
-                        <IconEdit size={14} />
-                      </ActionIcon>
-                      <ActionIcon variant="subtle" size="sm" color="red" onClick={() => handleDeleteQuestion(q)}>
-                        <IconTrash size={14} />
-                      </ActionIcon>
-                    </Group>
-                  </Group>
-                </Box>
-              ))}
-            </Box>
-          )}
-        </Tabs.Panel>
-
-        <Tabs.Panel value="import" pt="md">
-          <ImportDropZone onFiles={handleFileDrop} accept=".md,.png,.jpg,.jpeg,.gif,.svg,.webp">
-            <Group justify="center" gap="xs">
-              <IconFileImport size={20} />
-              <Text size="sm" c="dimmed">拖入 .md 题目文件及引用的图片，支持多文件</Text>
+        {questions.length === 0 ? (
+          <EmptyState title="还没有题目" description="添加第一道题目，或导入 Markdown 题目文件">
+            <Group>
+              <Button leftSection={<IconPlus size={16} />} onClick={() => navigate(`/bank/${id}/editor/new`)}>添加题目</Button>
+              <Button variant="default" leftSection={<IconFileImport size={16} />}
+                component="label" htmlFor="empty-import-input">
+                导入题目
+                <input id="empty-import-input" type="file" accept=".md,.png,.jpg,.jpeg,.gif,.svg,.webp" multiple style={{ display: 'none' }}
+                  onChange={(e) => { const files = Array.from(e.target.files || []); if (files.length) handleFiles(files); }} />
+              </Button>
             </Group>
-          </ImportDropZone>
-        </Tabs.Panel>
-      </Tabs>
+          </EmptyState>
+        ) : (
+          <Box>
+            {questions.map((q, idx) => (
+              <Box key={q.id} style={{ padding: '12px 0', borderBottom: '1px solid var(--border-light)' }}>
+                <Group justify="space-between">
+                  <Group gap="sm">
+                    <Badge variant="light" size="sm">{idx + 1}</Badge>
+                    <Text size="sm" style={{ maxWidth: 500 }} truncate>{extractText(q.body)}</Text>
+                    <Badge size="xs" color="slate" variant="outline">
+                      {q.type === 'single' ? '单选' : q.type === 'multiple' ? '多选' : '判断'}
+                    </Badge>
+                  </Group>
+                  <Group gap={4}>
+                    <ActionIcon variant="subtle" size="sm" onClick={() => navigate(`/bank/${id}/editor/${q.id}`)}>
+                      <IconEdit size={14} />
+                    </ActionIcon>
+                    <ActionIcon variant="subtle" size="sm" color="red" onClick={() => handleDeleteQuestion(q)}>
+                      <IconTrash size={14} />
+                    </ActionIcon>
+                  </Group>
+                </Group>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
 
-      <Modal opened={mdModalOpened} onClose={closeMdModal} title="Markdown 批量导入" size="lg">
-        <Text size="sm" c="dimmed" mb="md">已解析 {parseMarkdown(markdownText).length} 道题目</Text>
+      <Modal opened={mdModalOpened} onClose={closeMdModal} title="导入题目" size="lg">
+        <ImportDropZone onFiles={handleFiles} accept=".md,.png,.jpg,.jpeg,.gif,.svg,.webp">
+          <Group justify="center" gap="xs">
+            <IconFileImport size={20} />
+            <Text size="sm" c="dimmed">拖入 .md 及图片，或使用右上「导入题目」按钮选择文件</Text>
+          </Group>
+        </ImportDropZone>
+
+        <Text size="sm" c="dimmed" mt="md" mb="xs">已解析 {parseMarkdown(markdownText).length} 道题目，可在下方编辑后导入</Text>
         <textarea
           value={markdownText}
           onChange={(e) => setMarkdownText(e.target.value)}
@@ -200,7 +195,7 @@ export function BankDetailPage() {
         />
         <Group justify="flex-end" mt="md">
           <Button variant="default" onClick={closeMdModal}>取消</Button>
-          <Button onClick={handleMarkdownImport} loading={importing}>导入</Button>
+          <Button onClick={handleImport} loading={importing} disabled={parseMarkdown(markdownText).length === 0}>导入</Button>
         </Group>
       </Modal>
     </Box>
