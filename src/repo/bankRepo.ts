@@ -48,14 +48,10 @@ export const bankRepo = {
     });
   },
 
-  async incrementQuestionCount(id: string, delta: number): Promise<void> {
-    const bank = await db.banks.get(id);
-    if (!bank) {
-      throw new Error(`Bank not found: ${id}`);
-    }
-
+  async syncQuestionCount(id: string): Promise<void> {
+    const count = await db.questions.where('bankId').equals(id).count();
     await db.banks.update(id, {
-      questionCount: Math.max(0, bank.questionCount + delta),
+      questionCount: count,
       updatedAt: Date.now(),
     });
   },

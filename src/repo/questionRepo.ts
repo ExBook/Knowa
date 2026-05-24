@@ -15,7 +15,7 @@ export const questionRepo = {
       createdAt: Date.now(),
     };
     await db.questions.put(question);
-    await bankRepo.incrementQuestionCount(input.bankId, 1);
+    await bankRepo.syncQuestionCount(input.bankId);
     return question;
   },
 
@@ -31,7 +31,7 @@ export const questionRepo = {
     }));
     await db.transaction('rw', db.questions, db.banks, async () => {
       await db.questions.bulkPut(questions);
-      await bankRepo.incrementQuestionCount(bankId, questions.length);
+      await bankRepo.syncQuestionCount(bankId);
     });
     return questions;
   },
@@ -63,7 +63,7 @@ export const questionRepo = {
           await db.questions.update(remaining[i].id, { order: i + 1 });
         }
       }
-      await bankRepo.incrementQuestionCount(bankId, -1);
+      await bankRepo.syncQuestionCount(bankId);
     });
   },
 

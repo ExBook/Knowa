@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import { nanoid } from 'nanoid';
 import { saveAs } from 'file-saver';
 import { db } from '../repo/db';
 import { bankRepo } from '../repo/bankRepo';
@@ -96,6 +97,7 @@ export async function importExbank(file: File, targetBankId?: string): Promise<{
 
   const questions = bankData.questions.map((q) => ({
     ...q,
+    id: nanoid(), // always generate new ID to avoid collision across banks
     bankId: bank.id,
     body: replaceImageRefs(q.body, imageMap),
     options: q.options.map((o) => ({ ...o, content: replaceImageRefs(o.content, imageMap) })),

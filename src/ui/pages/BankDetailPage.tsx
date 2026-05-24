@@ -6,7 +6,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuestionStore } from '../../stores/questionStore';
 import { useBankStore } from '../../stores/bankStore';
 import { parseMarkdown } from '../../services/markdownParser';
-import { exportBankToFile, importExbank, detectDropType } from '../../services/importExportService';
+import { exportBankToFile } from '../../services/importExportService';
 import { getStorageDescription } from '../../services/storageService';
 import { ImportDropZone } from '../components/ImportDropZone';
 import { EmptyState } from '../components/EmptyState';
@@ -40,34 +40,46 @@ export function BankDetailPage() {
   }, [id]);
 
   const handleFileDrop = async (files: File[]) => {
-    const type = detectDropType(files);
-    if (type === 'exbank') {
-      setImporting(true);
-      try {
-        const result = await importExbank(files[0], id);
-        alert(`导入成功：${result.questionCount} 道题`);
-        if (id) loadQuestions(id);
-      } catch (e) {
-        alert(`导入失败：${(e as Error).message}`);
-      } finally {
-        setImporting(false);
-      }
-      return;
-    }
     const mdFile = files.find((f) => f.name.endsWith('.md'));
-    if (mdFile) {
-      const text = await mdFile.text();
-      setMarkdownText(text);
-      openMdModal();
+    if (!mdFile) return;
+    let text = await mdFile.text();
+
+    // Build image map from dropped files and replace refs in markdown
+    for (const file of files) {
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext || '')) {
+        const dataUrl = await fileToDataUrl(file);
+        // Replace ![alt](filename) with data URL
+        const escaped = file.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        text = text.replace(new RegExp(`!\\[([^\\]]*)\\]\\(${escaped}\\)`, 'g'), `![$1](${dataUrl})`);
+      }
     }
+
+    setMarkdownText(text);
+    openMdModal();
+  };
+
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleMarkdownImport = async () => {
     if (!id) return;
-    const parsed = parseMarkdown(markdownText);
-    await bulkCreateQuestions(parsed.map((p) => ({ ...p, bankId: id })));
-    closeMdModal();
-    await loadQuestions(id);
+    setImporting(true);
+    try {
+      const parsed = parseMarkdown(markdownText);
+      await bulkCreateQuestions(parsed.map((p) => ({ ...p, bankId: id })));
+      closeMdModal();
+      await loadQuestions(id);
+    } catch (e) {
+      alert(`导入失败：${(e as Error).message}`);
+    } finally {
+      setImporting(false);
+    }
   };
 
   const handleDeleteQuestion = async (q: Question) => {
@@ -101,7 +113,7 @@ export function BankDetailPage() {
           <Group gap="sm">
             <Button variant="default" leftSection={<IconFileImport size={16} />} component="label" htmlFor="bank-drop-trigger">
               导入题目
-              <input id="bank-drop-trigger" type="file" accept=".exbank,.md" multiple style={{ display: 'none' }}
+              <input id="bank-drop-trigger" type="file" accept=".md" style={{ display: 'none' }}
                 onChange={(e) => { const files = Array.from(e.target.files || []); if (files.length) handleFileDrop(files); }} />
             </Button>
             <Button variant="default" leftSection={<IconDownload size={16} />} onClick={() => handleExport(false)}>导出共享</Button>
@@ -169,10 +181,10 @@ export function BankDetailPage() {
         </Tabs.Panel>
 
         <Tabs.Panel value="import" pt="md">
-          <ImportDropZone onFiles={handleFileDrop} accept=".exbank,.md,.zip">
+          <ImportDropZone onFiles={handleFileDrop} accept=".md,.png,.jpg,.jpeg,.gif,.svg,.webp">
             <Group justify="center" gap="xs">
               <IconFileImport size={20} />
-              <Text size="sm" c="dimmed">拖入 .exbank、.md 或包含图片的文件夹</Text>
+              <Text size="sm" c="dimmed">拖入 .md 题目文件及引用的图片，支持多文件</Text>
             </Group>
           </ImportDropZone>
         </Tabs.Panel>
