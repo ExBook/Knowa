@@ -1,7 +1,7 @@
-import { Box, Title, Group, Button, Text, Badge, Modal, ActionIcon, Alert } from '@mantine/core';
+import { Box, Title, Group, Button, Text, Badge, Modal, ActionIcon, Alert, Tooltip, Divider } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconPlus, IconFileImport, IconEdit, IconTrash, IconDownload, IconArrowLeft, IconPlayerPlay, IconChartBar, IconFileTypePdf, IconFolder, IconAlertTriangle } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { IconPlus, IconFileImport, IconEdit, IconTrash, IconDownload, IconArrowLeft, IconPlayerPlay, IconChartBar, IconFileTypePdf, IconFolder, IconAlertTriangle, IconH1, IconH2, IconH3, IconBold, IconItalic, IconCode, IconPhoto, IconLink, IconList, IconListNumbers, IconBlockquote, IconSeparator } from '@tabler/icons-react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuestionStore } from '../../stores/questionStore';
 import { useBankStore } from '../../stores/bankStore';
@@ -41,6 +41,56 @@ export function BankDetailPage() {
   const [markdownText, setMarkdownText] = useState('');
   const [mdModalOpened, { open: openMdModal, close: closeMdModal }] = useDisclosure(false);
   const [importing, setImporting] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertAtCursor = useCallback((before: string, after = '') => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const text = ta.value;
+    const selected = text.substring(start, end);
+    const replacement = before + (selected || '') + after;
+    const newText = text.substring(0, start) + replacement + text.substring(end);
+    setMarkdownText(newText);
+    // Restore cursor position after state update
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start + before.length, start + before.length + (selected ? selected.length : 0));
+    });
+  }, []);
+
+  const mdActions = {
+    h1: () => insertAtCursor('# '),
+    h2: () => insertAtCursor('## '),
+    h3: () => insertAtCursor('### '),
+    bold: () => insertAtCursor('**', '**'),
+    italic: () => insertAtCursor('*', '*'),
+    code: () => insertAtCursor('```\n', '\n```'),
+    quote: () => insertAtCursor('> '),
+    link: () => {
+      const url = prompt('输入链接 URL:');
+      if (url) insertAtCursor('[', `](${url})`);
+    },
+    ul: () => insertAtCursor('- '),
+    ol: () => insertAtCursor('1. '),
+    hr: () => insertAtCursor('---\n'),
+  };
+
+  const handleInsertImage = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.onchange = async () => {
+      const files = Array.from(input.files || []);
+      for (const file of files) {
+        const dataUrl = await fileToDataUrl(file);
+        insertAtCursor(`![${file.name}](${dataUrl})`);
+      }
+    };
+    input.click();
+  };
 
   useEffect(() => {
     loadBanks();
@@ -186,12 +236,31 @@ export function BankDetailPage() {
           </Group>
         </ImportDropZone>
 
-        <Text size="sm" c="dimmed" mt="md" mb="xs">已解析 {parseMarkdown(markdownText).length} 道题目，可在下方编辑后导入</Text>
+        <Text size="sm" c="dimmed" mt="md" mb="xs">已解析 {parseMarkdown(markdownText).length} 道题目</Text>
+
+        <Group gap={2} p={4} mb={0} style={{ border: '1px solid var(--border)', borderBottom: 'none', borderTopLeftRadius: 'var(--radius-sm)', borderTopRightRadius: 'var(--radius-sm)', background: 'var(--bg-muted)' }}>
+          <Tooltip label="标题1" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.h1}><IconH1 size={15} /></ActionIcon></Tooltip>
+          <Tooltip label="标题2" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.h2}><IconH2 size={15} /></ActionIcon></Tooltip>
+          <Tooltip label="标题3" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.h3}><IconH3 size={15} /></ActionIcon></Tooltip>
+          <Divider orientation="vertical" mx={2} />
+          <Tooltip label="加粗" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.bold}><IconBold size={15} /></ActionIcon></Tooltip>
+          <Tooltip label="斜体" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.italic}><IconItalic size={15} /></ActionIcon></Tooltip>
+          <Tooltip label="代码块" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.code}><IconCode size={15} /></ActionIcon></Tooltip>
+          <Tooltip label="引用" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.quote}><IconBlockquote size={15} /></ActionIcon></Tooltip>
+          <Divider orientation="vertical" mx={2} />
+          <Tooltip label="无序列表" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.ul}><IconList size={15} /></ActionIcon></Tooltip>
+          <Tooltip label="有序列表" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.ol}><IconListNumbers size={15} /></ActionIcon></Tooltip>
+          <Divider orientation="vertical" mx={2} />
+          <Tooltip label="链接" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.link}><IconLink size={15} /></ActionIcon></Tooltip>
+          <Tooltip label="插入图片" withArrow><ActionIcon variant="subtle" size="sm" onClick={handleInsertImage}><IconPhoto size={15} /></ActionIcon></Tooltip>
+          <Tooltip label="分割线" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.hr}><IconSeparator size={15} /></ActionIcon></Tooltip>
+        </Group>
         <textarea
+          ref={textareaRef}
           value={markdownText}
           onChange={(e) => setMarkdownText(e.target.value)}
-          rows={15}
-          style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.85rem', padding: 12, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}
+          rows={16}
+          style={{ width: '100%', fontFamily: '"JetBrains Mono", "Fira Code", monospace', fontSize: '0.85rem', lineHeight: '1.6', padding: 12, border: '1px solid var(--border)', borderTop: 'none', borderBottomLeftRadius: 'var(--radius-sm)', borderBottomRightRadius: 'var(--radius-sm)', resize: 'vertical', outline: 'none', background: 'var(--bg-surface)' }}
         />
         <Group justify="flex-end" mt="md">
           <Button variant="default" onClick={closeMdModal}>取消</Button>
