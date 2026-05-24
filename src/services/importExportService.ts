@@ -63,18 +63,25 @@ export async function exportBankToFile(bankId: string, includeRecords: boolean):
 
 // ========== Import ==========
 
-export async function importExbank(file: File): Promise<{ bank: Bank; questionCount: number }> {
+export async function importExbank(file: File, targetBankId?: string): Promise<{ bank: Bank; questionCount: number }> {
   const zip = await JSZip.loadAsync(file);
 
   const bankJsonFile = zip.file('bank.json');
   if (!bankJsonFile) throw new Error('Invalid .exbank: missing bank.json');
   const bankData: BankExportData = JSON.parse(await bankJsonFile.async('string'));
 
-  const bank = await bankRepo.create({
-    name: bankData.bank.name,
-    description: bankData.bank.description,
-    tags: bankData.bank.tags,
-  });
+  let bank: Bank;
+  if (targetBankId) {
+    const existing = await bankRepo.findById(targetBankId);
+    if (!existing) throw new Error('题库不存在');
+    bank = existing;
+  } else {
+    bank = await bankRepo.create({
+      name: bankData.bank.name,
+      description: bankData.bank.description,
+      tags: bankData.bank.tags,
+    });
+  }
 
   const imgFolder = zip.folder('images');
   const imageMap: Record<string, string> = {};
@@ -100,8 +107,15 @@ export async function importExbank(file: File): Promise<{ bank: Bank; questionCo
   const recordsFile = zip.file('records.json');
   if (recordsFile) {
     const recordsData = JSON.parse(await recordsFile.async('string'));
-    if (recordsData.records?.length) await db.quizRecords.bulkPut(recordsData.records);
-    if (recordsData.notes?.length) await db.notes.bulkPut(recordsData.notes);
+    // Map records to the target bank if importing into existing
+    const mappedRecords = targetBankId
+      ? recordsData.records?.map((r: any) => ({ ...r, bankId: targetBankId }))
+      : recordsData.records;
+    const mappedNotes = targetBankId
+      ? recordsData.notes?.map((n: any) => ({ ...n, bankId: targetBankId }))
+      : recordsData.notes;
+    if (mappedRecords?.length) await db.quizRecords.bulkPut(mappedRecords);
+    if (mappedNotes?.length) await db.notes.bulkPut(mappedNotes);
   }
 
   return { bank, questionCount: questions.length };

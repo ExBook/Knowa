@@ -44,7 +44,7 @@ export function BankDetailPage() {
     if (type === 'exbank') {
       setImporting(true);
       try {
-        const result = await importExbank(files[0]);
+        const result = await importExbank(files[0], id);
         alert(`导入成功：${result.questionCount} 道题`);
         if (id) loadQuestions(id);
       } catch (e) {
