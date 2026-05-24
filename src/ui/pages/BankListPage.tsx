@@ -1,33 +1,76 @@
-import { Box, Button, Group, LoadingOverlay, Text, Title } from '@mantine/core';
-import { IconFileImport, IconPlus } from '@tabler/icons-react';
-import { useEffect } from 'react';
+import { Box, Button, Group, LoadingOverlay, Text, Title, Modal, TextInput, Textarea, Card, Badge, TagsInput } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import { IconFileImport, IconPlus, IconEdit, IconTrash } from '@tabler/icons-react';
+import { useEffect, useState } from 'react';
 import { useBankStore } from '../../stores/bankStore';
 import { EmptyState } from '../components/EmptyState';
+import type { Bank } from '../../shared/types';
 
 export function BankListPage() {
-  const { banks, loading, loadBanks } = useBankStore();
+  const { banks, loading, loadBanks, createBank, updateBank, deleteBank } = useBankStore();
+  const [opened, { open, close }] = useDisclosure(false);
+  const [editingBank, setEditingBank] = useState<Bank | null>(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     void loadBanks();
   }, [loadBanks]);
 
+  const handleOpenCreate = () => {
+    setEditingBank(null);
+    setName('');
+    setDescription('');
+    setTags([]);
+    open();
+  };
+
+  const handleOpenEdit = (bank: Bank) => {
+    setEditingBank(bank);
+    setName(bank.name);
+    setDescription(bank.description);
+    setTags(bank.tags);
+    open();
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      if (editingBank) {
+        await updateBank(editingBank.id, { name, description, tags });
+      } else {
+        await createBank({ name, description, tags });
+      }
+      close();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (bank: Bank) => {
+    if (confirm(`确定删除题库「${bank.name}」吗？此操作不可撤销。`)) {
+      await deleteBank(bank.id);
+    }
+  };
+
+  const getStatusBadge = (bank: Bank) => {
+    if (bank.questionCount === 0) return <Badge color="gray" variant="light">空题库</Badge>;
+    return <Badge color="slate" variant="light">{bank.questionCount} 题</Badge>;
+  };
+
   return (
     <Box>
       <Box style={{ borderBottom: '1px solid var(--border-light)', padding: '16px 24px', background: 'var(--bg-surface)' }}>
-        <Group justify="space-between" align="center">
+        <Group justify="space-between">
           <Box>
-            <Title order={2} style={{ margin: 0 }}>
-              题库
-            </Title>
-            <Text size="xs" c="dimmed">
-              {banks.length} 个题库
-            </Text>
+            <Title order={2}>题库</Title>
+            <Text size="xs" c="dimmed">{banks.length} 个题库</Text>
           </Box>
           <Group gap="sm">
-            <Button variant="default" leftSection={<IconFileImport size={16} />}>
-              导入题库
-            </Button>
-            <Button leftSection={<IconPlus size={16} />}>新建题库</Button>
+            <Button variant="default" leftSection={<IconFileImport size={16} />}>导入题库</Button>
+            <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreate}>新建题库</Button>
           </Group>
         </Group>
       </Box>
@@ -37,25 +80,72 @@ export function BankListPage() {
         {banks.length === 0 ? (
           <EmptyState title="还没有题库" description="创建你的第一个题库，或导入别人的题库文件">
             <Group justify="center">
-              <Button leftSection={<IconPlus size={16} />}>新建题库</Button>
-              <Button variant="default" leftSection={<IconFileImport size={16} />}>
-                导入题库
-              </Button>
+              <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreate}>新建题库</Button>
+              <Button variant="default" leftSection={<IconFileImport size={16} />}>导入题库</Button>
             </Group>
           </EmptyState>
         ) : (
-          <Box>
+          <Box style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
             {banks.map((bank) => (
-              <Box key={bank.id} style={{ padding: 16, borderBottom: '1px solid var(--border-light)' }}>
-                <Text fw={500}>{bank.name}</Text>
-                <Text size="sm" c="dimmed">
-                  {bank.description}
-                </Text>
-              </Box>
+              <Card key={bank.id} shadow="sm" padding="lg" radius="md" withBorder
+                style={{ cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+              >
+                <Group justify="space-between" mb="xs">
+                  <Text fw={600} style={{ fontFamily: 'var(--font-display)' }}>{bank.name}</Text>
+                  <Group gap={4}>
+                    <Button variant="subtle" size="xs" p={4} onClick={(e) => { e.stopPropagation(); handleOpenEdit(bank); }}>
+                      <IconEdit size={14} />
+                    </Button>
+                    <Button variant="subtle" size="xs" p={4} color="red" onClick={(e) => { e.stopPropagation(); handleDelete(bank); }}>
+                      <IconTrash size={14} />
+                    </Button>
+                  </Group>
+                </Group>
+                <Text size="sm" c="dimmed" mb="md" lineClamp={2}>{bank.description || '暂无描述'}</Text>
+                <Group justify="space-between">
+                  {getStatusBadge(bank)}
+                  <Text size="xs" c="dimmed">{new Date(bank.updatedAt).toLocaleDateString('zh-CN')}</Text>
+                </Group>
+              </Card>
             ))}
           </Box>
         )}
       </Box>
+
+      <Modal opened={opened} onClose={close} title={editingBank ? '编辑题库' : '新建题库'} centered>
+        <TextInput
+          label="题库名称"
+          placeholder="输入题库名称"
+          value={name}
+          onChange={(e) => setName(e.currentTarget.value)}
+          required
+          mb="md"
+          data-autofocus
+        />
+        <Textarea
+          label="描述"
+          placeholder="题库描述（可选）"
+          value={description}
+          onChange={(e) => setDescription(e.currentTarget.value)}
+          mb="md"
+          minRows={2}
+        />
+        <TagsInput
+          label="标签"
+          placeholder="添加标签后按回车"
+          value={tags}
+          onChange={setTags}
+          mb="md"
+        />
+        <Group justify="flex-end" mt="lg">
+          <Button variant="default" onClick={close}>取消</Button>
+          <Button onClick={handleSave} loading={saving} disabled={!name.trim()}>
+            {editingBank ? '保存' : '创建'}
+          </Button>
+        </Group>
+      </Modal>
     </Box>
   );
 }
