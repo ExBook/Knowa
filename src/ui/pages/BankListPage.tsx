@@ -1,6 +1,6 @@
-import { Box, Button, Group, LoadingOverlay, Text, Title, Modal, TextInput, Textarea, Card, Badge, TagsInput } from '@mantine/core';
+import { Box, Button, Group, LoadingOverlay, Text, Title, Modal, TextInput, Textarea, Card, Badge, TagsInput, ActionIcon } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconFileImport, IconPlus, IconEdit, IconTrash, IconFolder } from '@tabler/icons-react';
+import { IconFileImport, IconPlus, IconEdit, IconTrash, IconFolder, IconFolderOpen } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBankStore } from '../../stores/bankStore';
@@ -17,6 +17,17 @@ export function BankListPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [storagePath, setStoragePath] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const handlePickDirectory = async () => {
+    try {
+      const handle = await (window as any).showDirectoryPicker();
+      setStoragePath(handle.name);
+    } catch {
+      // user cancelled or API not available
+    }
+  };
+
+  const supportsDirectoryPicker = () => typeof (window as any).showDirectoryPicker === 'function';
 
   useEffect(() => {
     void loadBanks();
@@ -149,12 +160,19 @@ export function BankListPage() {
         />
         <TextInput
           label="数据目录"
-          placeholder="例如：/Users/mwj/Documents/MyBank"
+          placeholder="点击右侧按钮选择目录，或手动输入路径"
           description="题库数据、记录和状态文件将保存在此目录下"
           value={storagePath}
           onChange={(e) => setStoragePath(e.currentTarget.value)}
           required
           mb="md"
+          rightSection={
+            supportsDirectoryPicker() ? (
+              <ActionIcon variant="subtle" onClick={handlePickDirectory} title="选择目录">
+                <IconFolderOpen size={18} />
+              </ActionIcon>
+            ) : undefined
+          }
         />
         <TagsInput
           label="标签"
