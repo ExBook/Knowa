@@ -9,6 +9,25 @@ interface ParsedQuestion {
   tags: string[];
 }
 
+function parseInlineContent(text: string): object[] {
+  const result: object[] = [];
+  const regex = /\$([^$]+)\$/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      result.push({ type: 'text', text: text.slice(lastIndex, match.index) });
+    }
+    result.push({ type: 'inlineMath', attrs: { text: match[1] } });
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    result.push({ type: 'text', text: text.slice(lastIndex) });
+  }
+  return result.length > 0 ? result : [{ type: 'text', text }];
+}
+
 function parseBody(content: string): object {
   const nodes: object[] = [];
   const lines = content.split('\n');
@@ -25,12 +44,24 @@ function parseBody(content: string): object {
         codeLines.push(lines[i]);
         i++;
       }
-      i++; // skip closing ```
+      i++;
       nodes.push({
         type: 'codeBlock',
         attrs: { language: lang },
         content: [{ type: 'text', text: codeLines.join('\n') }],
       });
+      continue;
+    }
+
+    if (line.startsWith('$$')) {
+      const mathLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith('$$')) {
+        mathLines.push(lines[i]);
+        i++;
+      }
+      i++; // skip closing $$
+      nodes.push({ type: 'blockMath', attrs: { text: mathLines.join('\n') } });
       continue;
     }
 
@@ -47,7 +78,7 @@ function parseBody(content: string): object {
     if (line.trim()) {
       nodes.push({
         type: 'paragraph',
-        content: [{ type: 'text', text: line }],
+        content: parseInlineContent(line),
       });
     }
     i++;

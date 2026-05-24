@@ -114,4 +114,40 @@ for (int i = 0; i < n; i++) {
     expect(result[0].type).toBe('single');
     expect(result[1].type).toBe('truefalse');
   });
+
+  it('parses inline math ($...$)', () => {
+    const md = `# Q1 [单选题]
+已知 $x^2 + y^2 = 1$，求 $x + y$ 的最大值。
+
+- A. $\\sqrt{2}$
+- B. 1
+
+> 答案: A`;
+
+    const result = parseMarkdown(md);
+    expect(result).toHaveLength(1);
+    const bodyStr = JSON.stringify(result[0].body);
+    expect(bodyStr).toContain('inlineMath');
+    expect(bodyStr).toContain('x^2 + y^2 = 1');
+  });
+
+  it('parses block math ($$...$$)', () => {
+    const md = `# Q1 [单选题]
+计算以下积分：
+
+$$
+\\int_{0}^{\\infty} e^{-x^2} dx
+$$
+
+- A. $\\sqrt{\\pi}$
+- B. $\\frac{\\sqrt{\\pi}}{2}$
+
+> 答案: B`;
+
+    const result = parseMarkdown(md);
+    expect(result).toHaveLength(1);
+    const bodyStr = JSON.stringify(result[0].body);
+    expect(bodyStr).toContain('blockMath');
+    expect(bodyStr).toContain('\\int');
+  });
 });

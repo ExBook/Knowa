@@ -1,6 +1,6 @@
 import { Box, Title, Group, Button, Text, Badge, Modal, ActionIcon, Alert, Tooltip, Divider } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconPlus, IconFileImport, IconEdit, IconTrash, IconDownload, IconArrowLeft, IconPlayerPlay, IconChartBar, IconFileTypePdf, IconFolder, IconAlertTriangle, IconH1, IconH2, IconH3, IconBold, IconItalic, IconCode, IconPhoto, IconLink, IconList, IconListNumbers, IconBlockquote, IconSeparator } from '@tabler/icons-react';
+import { IconPlus, IconFileImport, IconEdit, IconTrash, IconDownload, IconArrowLeft, IconPlayerPlay, IconChartBar, IconFileTypePdf, IconFolder, IconAlertTriangle, IconH1, IconH2, IconH3, IconBold, IconItalic, IconCode, IconPhoto, IconLink, IconList, IconListNumbers, IconBlockquote, IconSeparator, IconMath, IconMathFunction } from '@tabler/icons-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuestionStore } from '../../stores/questionStore';
@@ -75,6 +75,8 @@ export function BankDetailPage() {
     ul: () => insertAtCursor('- '),
     ol: () => insertAtCursor('1. '),
     hr: () => insertAtCursor('---\n'),
+    inlineMath: () => insertAtCursor('$', '$'),
+    blockMath: () => insertAtCursor('$$\n', '\n$$'),
   };
 
   const handleInsertImage = () => {
@@ -252,6 +254,9 @@ export function BankDetailPage() {
           <Tooltip label="有序列表" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.ol}><IconListNumbers size={15} /></ActionIcon></Tooltip>
           <Divider orientation="vertical" mx={2} />
           <Tooltip label="链接" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.link}><IconLink size={15} /></ActionIcon></Tooltip>
+          <Tooltip label="行内公式" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.inlineMath}><IconMath size={15} /></ActionIcon></Tooltip>
+          <Tooltip label="块公式" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.blockMath}><IconMathFunction size={15} /></ActionIcon></Tooltip>
+          <Divider orientation="vertical" mx={2} />
           <Tooltip label="插入图片" withArrow><ActionIcon variant="subtle" size="sm" onClick={handleInsertImage}><IconPhoto size={15} /></ActionIcon></Tooltip>
           <Tooltip label="分割线" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.hr}><IconSeparator size={15} /></ActionIcon></Tooltip>
         </Group>

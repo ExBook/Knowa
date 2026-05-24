@@ -4,6 +4,7 @@ import Image from '@tiptap/extension-image';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
+import { Mathematics } from '@tiptap/extension-mathematics';
 import { common, createLowlight } from 'lowlight';
 import { Box, Group, ActionIcon, Tooltip, Divider } from '@mantine/core';
 import {
@@ -11,6 +12,7 @@ import {
   IconH1, IconH2, IconH3,
   IconBlockquote, IconCode, IconList, IconListNumbers,
   IconLink, IconUnlink, IconSeparator, IconPhoto,
+  IconMath, IconMathFunction,
 } from '@tabler/icons-react';
 
 const lowlight = createLowlight(common);
@@ -43,6 +45,7 @@ export function RichTextEditor({ content, onChange, placeholder = '输入内容.
       TableRow,
       TableCell,
       TableHeader,
+      Mathematics.configure({ katexOptions: { throwOnError: false } }),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -68,6 +71,18 @@ export function RichTextEditor({ content, onChange, placeholder = '输入内容.
     if (url) {
       editor.chain().focus().setImage({ src: url }).run();
     }
+  };
+
+  const addInlineMath = () => {
+    if (editor.isActive('inlineMath')) {
+      editor.chain().focus().unsetInlineMath().run();
+    } else {
+      editor.chain().focus().insertContent({ type: 'inlineMath', attrs: { text: 'x' } }).run();
+    }
+  };
+
+  const addBlockMath = () => {
+    editor.chain().focus().insertContent({ type: 'blockMath', attrs: { text: 'x^2' } }).run();
   };
 
   return (
@@ -124,6 +139,16 @@ export function RichTextEditor({ content, onChange, placeholder = '输入内容.
         <ToolbarButton onClick={addImage} label="图片">
           <IconPhoto size={16} />
         </ToolbarButton>
+
+        <Divider orientation="vertical" mx={2} />
+
+        <ToolbarButton active={editor.isActive('inlineMath')} onClick={addInlineMath} label="行内公式 ($...$)">
+          <IconMath size={16} />
+        </ToolbarButton>
+        <ToolbarButton onClick={addBlockMath} label="块公式 ($$...$$)">
+          <IconMathFunction size={16} />
+        </ToolbarButton>
+
         <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} label="分割线">
           <IconSeparator size={16} />
         </ToolbarButton>
