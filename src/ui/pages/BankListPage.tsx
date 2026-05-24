@@ -46,7 +46,7 @@ export function BankListPage() {
       if (editingBank) {
         await updateBank(editingBank.id, { name, description, tags, storagePath });
       } else {
-        await createBank({ name, description, tags, storagePath: storagePath || undefined });
+        await createBank({ name, description, tags, storagePath });
       }
       close();
     } finally {
@@ -139,10 +139,12 @@ export function BankListPage() {
           minRows={2}
         />
         <TextInput
-          label="存储目录"
-          placeholder="选择数据存储目录（可选，Tauri 模式下可用）"
+          label="数据目录"
+          placeholder="例如：/Users/mwj/Documents/MyBank"
+          description="题库数据、记录和状态文件将保存在此目录下"
           value={storagePath}
           onChange={(e) => setStoragePath(e.currentTarget.value)}
+          required
           mb="md"
         />
         <TagsInput
@@ -154,7 +156,7 @@ export function BankListPage() {
         />
         <Group justify="flex-end" mt="lg">
           <Button variant="default" onClick={close}>取消</Button>
-          <Button onClick={handleSave} loading={saving} disabled={!name.trim()}>
+          <Button onClick={handleSave} loading={saving} disabled={!name.trim() || !storagePath.trim()}>
             {editingBank ? '保存' : '创建'}
           </Button>
         </Group>
