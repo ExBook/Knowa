@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ExLocal — Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Geist:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Warm paper palette */
+  --bg-root: #faf7f2;
+  --bg-surface: #ffffff;
+  --bg-muted: #f3efe8;
+  --bg-hover: #ede7dc;
+  --bg-active: #e5dccb;
+
+  /* Ink-inspired colors */
+  --text-primary: #2c2416;
+  --text-secondary: #7a7568;
+  --text-muted: #a8a294;
+  --text-on-accent: #ffffff;
+
+  /* Accent: deep indigo ink */
+  --accent: #3b4b6b;
+  --accent-light: #e8ecf3;
+  --accent-hover: #2d3b56;
+  --accent-active: #1f2b43;
+
+  /* Warm amber for highlights */
+  --amber: #c4823d;
+  --amber-light: #fdf0e2;
+  --amber-hover: #b07230;
+
+  /* Semantic */
+  --success: #5b8c5a;
+  --success-light: #edf5ec;
+  --error: #c46b5d;
+  --error-light: #faf0ee;
+  --warning: #d4a43a;
+  --warning-light: #fdf5e2;
+
+  /* Borders & shadows */
+  --border: #e5e0d5;
+  --border-light: #f0ece3;
+  --shadow-sm: 0 1px 2px rgba(44, 36, 22, 0.04);
+  --shadow-md: 0 4px 12px rgba(44, 36, 22, 0.06);
+  --shadow-lg: 0 12px 32px rgba(44, 36, 22, 0.08);
+
+  /* Noise overlay opacity */
+  --noise-opacity: 0.03;
+
+  /* Typography */
+  --font-display: 'Lora', 'Noto Serif SC', serif;
+  --font-body: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Spacing */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Layout */
+  --sidebar-w: 260px;
+  --header-h: 60px;
+}
+
+/* Dark theme: Night Study (夜读) */
+[data-theme="dark"] {
+  --bg-root: #161613;
+  --bg-surface: #1f1e1a;
+  --bg-muted: #282620;
+  --bg-hover: #302d26;
+  --bg-active: #3a362d;
+
+  --text-primary: #e8e4db;
+  --text-secondary: #a8a294;
+  --text-muted: #6b675c;
+
+  --accent: #8ba4cc;
+  --accent-light: #252d3a;
+  --accent-hover: #a2b8dd;
+  --accent-active: #7690b8;
+
+  --amber: #d49e5a;
+  --amber-light: #3d3020;
+  --amber-hover: #e0b370;
+
+  --success: #7dae7b;
+  --success-light: #262f24;
+  --error: #d48b7d;
+  --error-light: #352422;
+  --warning: #d4b85a;
+  --warning-light: #3d3820;
+
+  --border: #302d26;
+  --border-light: #282620;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.4);
+
+  --noise-opacity: 0.04;
+}
+
+/* Reset */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html { font-size: 16px; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-root);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Paper texture background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; }
+h1 { font-size: 2rem; letter-spacing: -0.02em; }
+h2 { font-size: 1.5rem; letter-spacing: -0.01em; }
+h3 { font-size: 1.15rem; }
+
+/* Design showcase layout */
+.showcase {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 40px;
+}
+
+.section { margin-bottom: 80px; }
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+.section-desc {
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+  font-size: 0.95rem;
+}
+
+/* Color swatches */
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.swatch {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.swatch-color {
+  height: 80px;
+}
+.swatch-label {
+  padding: 10px 14px;
+  background: var(--bg-surface);
+  font-size: 0.8rem;
+}
+.swatch-label .name {
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+}
+.swatch-label .hex {
+  color: var(--text-muted);
+  font-family: monospace;
+  font-size: 0.75rem;
+}
+
+/* Typography showcase */
+.type-sample { margin-bottom: 28px; }
+.type-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.type-preview h1 { margin: 0; }
+.type-preview h2 { margin: 0; }
+.type-preview h3 { margin: 0; }
+
+/* Component showcase */
+.comp-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.comp-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:active { background: var(--accent-active); transform: scale(0.98); }
+.btn-secondary {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--bg-hover); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover { background: var(--bg-muted); }
+.btn-danger {
+  background: var(--error);
+  color: white;
+}
+.btn-danger:hover { background: #b35b4f; }
+.btn-amber {
+  background: var(--amber);
+  color: white;
+}
+.btn-amber:hover { background: var(--amber-hover); }
+
+.btn-lg { padding: 14px 28px; font-size: 1rem; border-radius: var(--radius-md); }
+.btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.badge-accent { background: var(--accent-light); color: var(--accent); }
+.badge-success { background: var(--success-light); color: var(--success); }
+.badge-error { background: var(--error-light); color: var(--error); }
+.badge-amber { background: var(--amber-light); color: var(--amber); }
+
+/* Input */
+.input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+.input::placeholder { color: var(--text-muted); }
+
+/* Card */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.card-interactive {
+  cursor: pointer;
+}
+
+/* Stat card */
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Progress bar */
+.progress-track {
+  height: 6px;
+  background: var(--bg-muted);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.progress-fill.accent { background: var(--accent); }
+.progress-fill.success { background: var(--success); }
+.progress-fill.amber { background: var(--amber); }
+.progress-fill.error { background: var(--error); }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border);
+}
+.tab {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.15s ease;
+}
+.tab:hover { color: var(--text-primary); }
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 500;
+}
+
+/* Page mockups */
+.page-mockup {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.mockup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-surface);
+}
+.mockup-body { padding: 24px; }
+.mockup-sidebar {
+  width: var(--sidebar-w);
+  border-right: 1px solid var(--border-light);
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+}
+.mockup-layout { display: flex; min-height: 400px; }
+.mockup-main { flex: 1; }
+
+/* Nav item */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  border-radius: var(--radius-sm);
+  margin: 2px 10px;
+}
+.nav-item:hover { background: var(--bg-muted); color: var(--text-primary); }
+.nav-item.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 500;
+}
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.logo-mark {
+  width: 34px;
+  height: 34px;
+  background: var(--accent);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Question item */
+.question-item {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+.question-item:hover {
+  border-color: var(--border);
+  background: var(--bg-muted);
+}
+.question-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.question-body { flex: 1; }
+
+/* Option */
+.option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  margin-bottom: 8px;
+}
+.option:hover { border-color: var(--accent); background: var(--accent-light); }
+.option.selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  font-weight: 500;
+}
+.option.correct { border-color: var(--success); background: var(--success-light); }
+.option.wrong { border-color: var(--error); background: var(--error-light); }
+.option-letter {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.option.selected .option-letter { background: var(--accent); color: white; }
+.option.correct .option-letter { background: var(--success); color: white; }
+.option.wrong .option-letter { background: var(--error); color: white; }
+
+/* Chip */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  font-size: 0.8rem;
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+/* Grid */
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+}
+
+/* Table-like list */
+.data-row {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-light);
+  gap: 16px;
+  transition: background 0.12s ease;
+}
+.data-row:hover { background: var(--bg-muted); }
+.data-row-header {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.data-row-header:hover { background: transparent; }
+
+/* Toast / notification */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.9rem;
+}
+
+/* Divider */
+.divider { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+.empty-state-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.empty-state-desc {
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+/* Modal overlay */
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(44, 36, 22, 0.3);
+  backdrop-filter: blur(2px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+[data-theme="dark"] .modal-bg {
+  background: rgba(0, 0, 0, 0.5);
+}
+.modal {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 480px;
+  max-width: 90vw;
+  padding: 28px;
+}
+
+/* Sidebar footer */
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-light);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Responsive helpers */
+@media (max-width: 768px) {
+  .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* Page transition effect */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeSlideIn 0.35s ease; }
+
+/* Code block styling */
+.code-block {
+  background: #f5f2eb;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+  overflow-x: auto;
+}
+[data-theme="dark"] .code-block {
+  background: #1e1d19;
+}
+
+/* Image placeholder */
+.img-placeholder {
+  background: var(--bg-muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Tag group */
+.tag-group { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* Tooltip */
+.tooltip {
+  position: relative;
+}
+.tooltip-content {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  background: var(--text-primary);
+  color: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.tooltip:hover .tooltip-content { opacity: 1; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="showcase">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:60px">
+    <div class="logo-mark">EL</div>
+    <div style="flex:1">
+      <h1 style="margin:0">ExLocal Design System</h1>
+      <p style="color:var(--text-secondary);margin-top:4px;font-size:0.95rem">Warm Academia · 温润学术</p>
+    </div>
+    <button id="theme-toggle" class="btn btn-secondary btn-sm" onclick="toggleTheme()" style="font-size:1rem">
+      <span class="light-icon">🌙</span>
+      <span class="dark-icon" style="display:none">☀️</span>
+    </button>
+  </div>
+
+  <!-- Section: Colors -->
+  <div class="section">
+    <div class="section-title">配色系统 / Color Palette</div>
+    <div class="section-desc">温润纸质感为基底，靛蓝墨水为强调色，琥珀暖色点缀</div>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch-color" style="background:#faf7f2"></div><div class="swatch-label"><span class="name">bg-root</span><span class="hex">#faf7f2</span></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#ffffff;border:1px solid #e5e0d5"></div><div class="swatch-label"><span class="name">bg-surface</span><span class="hex">#ffffff</span></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#f3efe8"></div><div class="swatch-label"><span class="name">bg-muted</span><span class="hex">#f3efe8</span></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#3b4b6b"></div><div class="swatch-label"><span class="name">accent</span><span class="hex">#3b4b6b</span></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#c4823d"></div><div class="swatch-label"><span class="name">amber</span><span class="hex">#c4823d</span></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#2c2416"></div><div class="swatch-label"><span class="name">text-primary</span><span class="hex">#2c2416</span></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#5b8c5a"></div><div class="swatch-label"><span class="name">success</span><span class="hex">#5b8c5a</span></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#c46b5d"></div><div class="swatch-label"><span class="name">error</span><span class="hex">#c46b5d</span></div></div>
+    </div>
+  </div>
+
+  <!-- Section: Typography -->
+  <div class="section">
+    <div class="section-title">字体系统 / Typography</div>
+    <div class="section-desc">Lora 作标题衬线体，Geist 作正文无衬线体，中文回退 Noto Serif SC</div>
+    <div class="type-sample">
+      <div class="type-meta">Display / 标题 — Lora SemiBold, 2rem</div>
+      <div class="type-preview"><h1>刷题题库列表 · Question Banks</h1></div>
+    </div>
+    <div class="type-sample">
+      <div class="type-meta">Heading / 小节 — Lora SemiBold, 1.5rem</div>
+      <div class="type-preview"><h2>数据结构与算法 · 章节练习</h2></div>
+    </div>
+    <div class="type-sample">
+      <div class="type-meta">Body / 正文 — Geist Regular, 1rem</div>
+      <div class="type-preview" style="font-family:var(--font-body);font-size:1rem;max-width:560px">
+        以下关于二叉树遍历的说法中，正确的是？
+      </div>
+    </div>
+    <div class="type-sample">
+      <div class="type-meta">Caption / 辅助文字 — Geist, 0.85rem, text-secondary</div>
+      <div class="type-preview" style="font-family:var(--font-body);font-size:0.85rem;color:var(--text-secondary)">
+        共 128 道题 · 已完成 96 道 · 正确率 78.4%
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Components -->
+  <div class="section">
+    <div class="section-title">组件库 / Components</div>
+
+    <div class="comp-label">Buttons / 按钮</div>
+    <div class="comp-row">
+      <button class="btn btn-primary">主要操作</button>
+      <button class="btn btn-secondary">次要操作</button>
+      <button class="btn btn-ghost">取消</button>
+      <button class="btn btn-amber">导出 PDF</button>
+      <button class="btn btn-danger">删除</button>
+    </div>
+    <div class="comp-row">
+      <button class="btn btn-primary btn-lg">开始做题</button>
+      <button class="btn btn-primary btn-sm">保存</button>
+      <button class="btn btn-secondary" disabled>禁用状态</button>
+    </div>
+
+    <div class="comp-label">Badges / 标签</div>
+    <div class="comp-row">
+      <span class="badge badge-accent">数据结构</span>
+      <span class="badge badge-success">已完成</span>
+      <span class="badge badge-amber">进行中</span>
+      <span class="badge badge-error">未通过</span>
+    </div>
+
+    <div class="comp-label">Progress / 进度条</div>
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:300px">
+      <div class="progress-track"><div class="progress-fill accent" style="width:78%"></div></div>
+      <div class="progress-track"><div class="progress-fill success" style="width:45%"></div></div>
+      <div class="progress-track"><div class="progress-fill amber" style="width:92%"></div></div>
+    </div>
+
+    <div class="comp-label" style="margin-top:20px">Input / 输入框</div>
+    <div style="max-width:360px">
+      <input class="input" placeholder="输入题库名称..." value="">
+    </div>
+
+    <div class="comp-label" style="margin-top:20px">Chips / 小标签</div>
+    <div class="tag-group">
+      <span class="chip">二叉树</span>
+      <span class="chip">动态规划</span>
+      <span class="chip">图论</span>
+      <span class="chip">+ 添加标签</span>
+    </div>
+
+    <div class="comp-label" style="margin-top:20px">Tabs / 标签页</div>
+    <div class="tabs">
+      <button class="tab active">题目列表</button>
+      <button class="tab">数据看板</button>
+      <button class="tab">导出 PDF</button>
+    </div>
+  </div>
+
+  <!-- Section: Cards & Stats -->
+  <div class="section">
+    <div class="section-title">卡片与数据 / Cards &amp; Stats</div>
+    <div class="grid-4" style="margin-bottom:20px">
+      <div class="stat-card">
+        <div class="stat-value">128</div>
+        <div class="stat-label">总题目数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">96</div>
+        <div class="stat-label">已完成</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">78.4%</div>
+        <div class="stat-label">正确率</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">12.5h</div>
+        <div class="stat-label">总用时</div>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="card card-interactive">
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div>
+            <h3 style="margin-bottom:4px">数据结构与算法</h3>
+            <p style="font-size:0.85rem;color:var(--text-secondary)">128 题 · 算法基础练习</p>
+          </div>
+          <span class="badge badge-success">已完成</span>
+        </div>
+        <div style="margin-top:16px">
+          <div class="progress-track"><div class="progress-fill accent" style="width:100%"></div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:0.8rem;color:var(--text-muted)">
+          <span>128/128 题</span><span>正确率 78%</span>
+        </div>
+      </div>
+      <div class="card card-interactive">
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div>
+            <h3 style="margin-bottom:4px">计算机网络</h3>
+            <p style="font-size:0.85rem;color:var(--text-secondary)">86 题 · 考研408</p>
+          </div>
+          <span class="badge badge-amber">进行中</span>
+        </div>
+        <div style="margin-top:16px">
+          <div class="progress-track"><div class="progress-fill accent" style="width:45%"></div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:0.8rem;color:var(--text-muted)">
+          <span>39/86 题</span><span>正确率 72%</span>
+        </div>
+      </div>
+      <div class="card card-interactive">
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div>
+            <h3 style="margin-bottom:4px">操作系统</h3>
+            <p style="font-size:0.85rem;color:var(--text-secondary)">64 题 · 进程与线程</p>
+          </div>
+          <span class="badge" style="background:var(--bg-muted);color:var(--text-muted)">未开始</span>
+        </div>
+        <div style="margin-top:16px">
+          <div class="progress-track"><div class="progress-fill" style="width:0%"></div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:0.8rem;color:var(--text-muted)">
+          <span>0/64 题</span><span>—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Page Mockup - Bank List -->
+  <div class="section">
+    <div class="section-title">页面布局 / Page: 题库列表</div>
+    <div class="section-desc">侧边导航 + 主内容区，空状态 → 导入引导</div>
+    <div class="page-mockup">
+      <div class="mockup-layout">
+        <div class="mockup-sidebar">
+          <div class="logo">
+            <div class="logo-mark">EL</div>
+            ExLocal
+          </div>
+          <div class="nav-item active"><span class="nav-icon">📚</span>题库</div>
+          <div class="nav-item"><span class="nav-icon">⭐</span>收藏的题</div>
+          <div class="nav-item"><span class="nav-icon">⚙️</span>设置</div>
+          <div class="sidebar-footer">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--success)"></div>
+              本地模式 · 数据已保存
+            </div>
+            <div style="margin-top:4px;color:var(--text-muted)">v0.1.0</div>
+          </div>
+        </div>
+        <div class="mockup-main">
+          <div class="mockup-header">
+            <div>
+              <h2 style="margin:0">题库</h2>
+              <span style="font-size:0.8rem;color:var(--text-muted)">3 个题库</span>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-secondary btn-sm">📥 导入题库</button>
+              <button class="btn btn-primary btn-sm">+ 新建题库</button>
+            </div>
+          </div>
+          <div class="mockup-body">
+            <div class="grid-3">
+              <!-- Cards repeated from above section, in-situ -->
+              <div class="card card-interactive fade-in">
+                <div style="display:flex;justify-content:space-between;align-items:start">
+                  <div>
+                    <h3 style="margin-bottom:4px;font-size:1rem">数据结构与算法</h3>
+                    <p style="font-size:0.8rem;color:var(--text-secondary)">128 题 · 算法基础练习</p>
+                  </div>
+                  <span class="badge badge-success">已完成</span>
+                </div>
+                <div style="margin-top:14px">
+                  <div class="progress-track"><div class="progress-fill accent" style="width:100%"></div></div>
+                </div>
+              </div>
+              <div class="card card-interactive fade-in">
+                <div style="display:flex;justify-content:space-between;align-items:start">
+                  <div>
+                    <h3 style="margin-bottom:4px;font-size:1rem">计算机网络</h3>
+                    <p style="font-size:0.8rem;color:var(--text-secondary)">86 题 · 考研408</p>
+                  </div>
+                  <span class="badge badge-amber">进行中</span>
+                </div>
+                <div style="margin-top:14px">
+                  <div class="progress-track"><div class="progress-fill accent" style="width:45%"></div></div>
+                </div>
+              </div>
+              <div class="card card-interactive fade-in">
+                <div style="display:flex;justify-content:space-between;align-items:start">
+                  <div>
+                    <h3 style="margin-bottom:4px;font-size:1rem">操作系统</h3>
+                    <p style="font-size:0.8rem;color:var(--text-secondary)">64 题 · 进程与线程</p>
+                  </div>
+                  <span class="badge" style="background:var(--bg-muted);color:var(--text-muted)">未开始</span>
+                </div>
+                <div style="margin-top:14px">
+                  <div class="progress-track"><div class="progress-fill" style="width:0%"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Page Mockup - Quiz Mode -->
+  <div class="section">
+    <div class="section-title">页面布局 / Page: 做题模式</div>
+    <div class="section-desc">左侧选项区，右侧笔记区，顶部进度条</div>
+    <div class="page-mockup">
+      <div class="mockup-layout">
+        <div class="mockup-main">
+          <div class="mockup-header">
+            <div style="display:flex;align-items:center;gap:12px;width:100%">
+              <button class="btn btn-ghost btn-sm">← 返回题库</button>
+              <span style="color:var(--text-muted);font-size:0.85rem">数据结构与算法</span>
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:8px;justify-content:center">
+                  <span style="font-size:0.85rem;font-weight:500">第 42 题 / 128</span>
+                </div>
+                <div class="progress-track" style="margin-top:6px"><div class="progress-fill accent" style="width:33%"></div></div>
+              </div>
+              <span style="font-size:0.8rem;color:var(--text-muted)">用时 1:23</span>
+            </div>
+          </div>
+          <div class="mockup-body" style="display:flex;gap:24px">
+            <!-- Question area -->
+            <div style="flex:1">
+              <div class="fade-in">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+                  <span class="badge badge-accent">单选题</span>
+                  <span class="chip">二叉树</span>
+                  <span class="chip">遍历</span>
+                </div>
+                <p style="font-size:1.05rem;margin-bottom:20px;line-height:1.8">
+                  以下关于二叉树遍历的说法中，<strong>正确</strong>的是？
+                </p>
+                <div class="option selected">
+                  <div class="option-letter">A</div>
+                  <span>前序遍历的第一个节点一定是根节点</span>
+                </div>
+                <div class="option">
+                  <div class="option-letter">B</div>
+                  <span>中序遍历的结果一定是升序排列</span>
+                </div>
+                <div class="option">
+                  <div class="option-letter">C</div>
+                  <span>后序遍历的最后一个节点一定是叶子节点</span>
+                </div>
+                <div class="option">
+                  <div class="option-letter">D</div>
+                  <span>层序遍历需要使用栈来实现</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:24px">
+                  <button class="btn btn-secondary">← 上一题</button>
+                  <button class="btn btn-primary">提交答案</button>
+                  <button class="btn btn-secondary">下一题 →</button>
+                </div>
+
+                <!-- Answer reveal (after submit) -->
+                <div style="margin-top:28px;padding:16px;border-radius:var(--radius-md);background:var(--success-light);border:1px solid var(--success);display:none">
+                  <span style="font-weight:600;color:var(--success)">✓ 回答正确</span>
+                  <p style="margin-top:8px;font-size:0.9rem;color:var(--text-secondary)">
+                    <strong>解析：</strong>前序遍历的顺序是 根→左→右，第一个访问的节点必定是根节点。中序遍历不一定是升序——只有二叉搜索树的中序遍历才是升序。
+                  </p>
+                </div>
+              </div>
+            </div>
+            <!-- Note sidebar -->
+            <div style="width:280px;flex-shrink:0;border-left:1px solid var(--border-light);padding-left:20px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <h4 style="font-size:0.9rem;font-family:var(--font-body)">📝 我的笔记</h4>
+                <button class="btn btn-ghost btn-sm">保存</button>
+              </div>
+              <textarea class="input" rows="8" placeholder="记录你的解题思路..." style="resize:vertical;font-size:0.85rem">前序遍历：根→左→右
+中序遍历：左→根→右
+后序遍历：左→右→根
+
+注意区分二叉搜索树和普通二叉树！</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Page Mockup - Stats Dashboard -->
+  <div class="section">
+    <div class="section-title">页面布局 / Page: 数据看板</div>
+    <div class="section-desc">统计卡片 + 图表占位区 + 分类详情</div>
+    <div class="page-mockup">
+      <div class="mockup-layout">
+        <div class="mockup-main">
+          <div class="mockup-header">
+            <div style="display:flex;align-items:center;gap:12px">
+              <button class="btn btn-ghost btn-sm">← 返回</button>
+              <h2 style="margin:0;font-size:1.2rem">数据结构与算法 · 数据看板</h2>
+            </div>
+            <div class="tabs">
+              <button class="tab active">概览</button>
+              <button class="tab">按标签</button>
+              <button class="tab">时间轴</button>
+            </div>
+          </div>
+          <div class="mockup-body">
+            <div class="grid-4" style="margin-bottom:28px">
+              <div class="stat-card">
+                <div class="stat-value" style="font-size:1.5rem">128</div>
+                <div class="stat-label">总题数</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" style="font-size:1.5rem">96</div>
+                <div class="stat-label">已作答</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" style="font-size:1.5rem;color:var(--success)">78.4%</div>
+                <div class="stat-label">正确率</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" style="font-size:1.5rem">12.5h</div>
+                <div class="stat-label">总用时</div>
+              </div>
+            </div>
+
+            <!-- Chart placeholder -->
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+              <div style="background:var(--bg-muted);border-radius:var(--radius-md);padding:30px;text-align:center;border:1px dashed var(--border)">
+                <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:4px">📊 每日正确率趋势图</p>
+                <p style="color:var(--text-muted);font-size:0.8rem">Recharts 折线图 / 柱状图</p>
+              </div>
+              <div style="background:var(--bg-muted);border-radius:var(--radius-md);padding:30px;text-align:center;border:1px dashed var(--border)">
+                <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:4px">🍩 标签分布饼图</p>
+                <p style="color:var(--text-muted);font-size:0.8rem">Recharts 饼图</p>
+              </div>
+            </div>
+
+            <!-- Per-tag breakdown -->
+            <h4 style="margin-top:28px;margin-bottom:14px;font-size:0.95rem;font-family:var(--font-body)">标签分类统计</h4>
+            <div class="data-row data-row-header">
+              <span style="flex:1">标签</span><span style="width:80px;text-align:right">题数</span><span style="width:80px;text-align:right">已做</span><span style="width:80px;text-align:right">正确率</span>
+            </div>
+            <div class="data-row">
+              <span style="flex:1;font-weight:500">二叉树</span>
+              <span style="width:80px;text-align:right">32</span>
+              <span style="width:80px;text-align:right">32</span>
+              <span style="width:80px;text-align:right;color:var(--success);font-weight:500">82%</span>
+            </div>
+            <div class="data-row">
+              <span style="flex:1;font-weight:500">动态规划</span>
+              <span style="width:80px;text-align:right">28</span>
+              <span style="width:80px;text-align:right">20</span>
+              <span style="width:80px;text-align:right;color:var(--warning);font-weight:500">65%</span>
+            </div>
+            <div class="data-row">
+              <span style="flex:1;font-weight:500">图论</span>
+              <span style="width:80px;text-align:right">24</span>
+              <span style="width:80px;text-align:right">18</span>
+              <span style="width:80px;text-align:right;color:var(--accent);font-weight:500">76%</span>
+            </div>
+            <div class="data-row">
+              <span style="flex:1;font-weight:500">排序算法</span>
+              <span style="width:80px;text-align:right">20</span>
+              <span style="width:80px;text-align:right">12</span>
+              <span style="width:80px;text-align:right;color:var(--error);font-weight:500">52%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Empty States -->
+  <div class="section">
+    <div class="section-title">空状态 / Empty States</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card" style="text-align:center;padding:60px 20px">
+        <div class="empty-state-icon">📭</div>
+        <div class="empty-state-title">还没有题库</div>
+        <div class="empty-state-desc">创建你的第一个题库，或导入别人的题库文件</div>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button class="btn btn-primary">+ 新建题库</button>
+          <button class="btn btn-secondary">📥 导入题库</button>
+        </div>
+      </div>
+      <div class="card" style="text-align:center;padding:60px 20px">
+        <div class="empty-state-icon">📝</div>
+        <div class="empty-state-title">还没有做题记录</div>
+        <div class="empty-state-desc">开始做题后，你的答题数据和统计图表会出现在这里</div>
+        <button class="btn btn-primary">开始做题</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('exlocal-theme', next);
+  updateToggleIcon(next);
+}
+
+function updateToggleIcon(theme) {
+  const lightIcon = document.querySelector('.light-icon');
+  const darkIcon = document.querySelector('.dark-icon');
+  if (theme === 'dark') {
+    lightIcon.style.display = 'none';
+    darkIcon.style.display = 'inline';
+  } else {
+    lightIcon.style.display = 'inline';
+    darkIcon.style.display = 'none';
+  }
+}
+
+// Restore saved theme
+(function() {
+  const saved = localStorage.getItem('exlocal-theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  updateToggleIcon(document.documentElement.getAttribute('data-theme'));
+})();
+</script>
+
+</body>
+</html>
