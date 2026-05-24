@@ -1,4 +1,4 @@
-import { Box, Title, Group, Button, Select, TagsInput, ActionIcon, Stack, Text, Alert } from '@mantine/core';
+import { Box, Title, Group, Button, Select, TagsInput, ActionIcon, Stack, Text, Alert, LoadingOverlay } from '@mantine/core';
 import { IconArrowLeft, IconPlus, IconTrash, IconAlertCircle } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -27,10 +27,12 @@ export function QuestionEditorPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(isNew);
 
   useEffect(() => {
-    if (isNew || !questionId) return;
-    questionService.getQuestion(questionId).then((q) => {
+    if (isNew) return;
+    setLoaded(false);
+    questionService.getQuestion(questionId!).then((q) => {
       if (q) {
         setType(q.type);
         setBody(q.body);
@@ -39,6 +41,7 @@ export function QuestionEditorPage() {
         setExplanation(q.explanation);
         setTags(q.tags);
       }
+      setLoaded(true);
     });
   }, [questionId, isNew]);
 
@@ -74,6 +77,14 @@ export function QuestionEditorPage() {
       setSaving(false);
     }
   };
+
+  if (!loaded) {
+    return (
+      <Box style={{ padding: 80, position: 'relative' }}>
+        <LoadingOverlay visible />
+      </Box>
+    );
+  }
 
   return (
     <Box>
