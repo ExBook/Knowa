@@ -1,12 +1,13 @@
-import { Box, Title, Group, Button, Text, Card, Badge, Modal, Tabs, ActionIcon } from '@mantine/core';
+import { Box, Title, Group, Button, Text, Card, Badge, Modal, Tabs, ActionIcon, Alert } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconPlus, IconFileImport, IconEdit, IconTrash, IconDownload, IconArrowLeft, IconPlayerPlay, IconChartBar, IconFileTypePdf } from '@tabler/icons-react';
+import { IconPlus, IconFileImport, IconEdit, IconTrash, IconDownload, IconArrowLeft, IconPlayerPlay, IconChartBar, IconFileTypePdf, IconFolder, IconAlertTriangle } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuestionStore } from '../../stores/questionStore';
 import { useBankStore } from '../../stores/bankStore';
 import { parseMarkdown } from '../../services/markdownParser';
 import { exportBankToFile, importExbank, detectDropType } from '../../services/importExportService';
+import { getStorageDescription } from '../../services/storageService';
 import { ImportDropZone } from '../components/ImportDropZone';
 import { EmptyState } from '../components/EmptyState';
 import type { Question } from '../../shared/types';
@@ -25,7 +26,7 @@ function extractText(node: any): string {
 export function BankDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { banks } = useBankStore();
+  const { banks, loadBanks } = useBankStore();
   const { questions, loading, loadQuestions, createQuestion, bulkCreateQuestions, deleteQuestion } = useQuestionStore();
   const bank = banks.find((b) => b.id === id);
 
@@ -34,6 +35,7 @@ export function BankDetailPage() {
   const [importing, setImporting] = useState(false);
 
   useEffect(() => {
+    loadBanks();
     if (id) loadQuestions(id);
   }, [id]);
 
@@ -90,6 +92,10 @@ export function BankDetailPage() {
             <Box>
               <Title order={2}>{bank.name}</Title>
               <Text size="xs" c="dimmed">{questions.length} 题 · {bank.description}</Text>
+              <Group gap={4} mt={2}>
+                <IconFolder size={12} style={{ color: 'var(--text-muted)' }} />
+                <Text size="xs" c={bank.storagePath ? 'dimmed' : 'red'}>{bank.storagePath || '未设置数据目录 — 请编辑题库补充'}</Text>
+              </Group>
             </Box>
           </Group>
           <Group gap="sm">
@@ -106,6 +112,16 @@ export function BankDetailPage() {
           </Group>
         </Group>
       </Box>
+
+      {!bank.storagePath ? (
+        <Alert icon={<IconAlertTriangle size={16} />} color="red" variant="light" m="md" mb={0} title="未设置数据目录">
+          请编辑题库设置数据目录，否则数据无法持久化到本地文件系统。
+        </Alert>
+      ) : (
+        <Alert icon={<IconFolder size={16} />} color="slate" variant="light" m="md" mb={0}>
+          {getStorageDescription(bank.storagePath)}
+        </Alert>
+      )}
 
       <Tabs defaultValue="list" p="md">
         <Tabs.List>

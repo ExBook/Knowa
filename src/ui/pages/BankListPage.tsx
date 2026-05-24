@@ -1,6 +1,6 @@
 import { Box, Button, Group, LoadingOverlay, Text, Title, Modal, TextInput, Textarea, Card, Badge, TagsInput } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconFileImport, IconPlus, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconFileImport, IconPlus, IconEdit, IconTrash, IconFolder } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBankStore } from '../../stores/bankStore';
@@ -109,7 +109,16 @@ export function BankListPage() {
                     </Button>
                   </Group>
                 </Group>
-                <Text size="sm" c="dimmed" mb="md" lineClamp={2}>{bank.description || '暂无描述'}</Text>
+                <Text size="sm" c="dimmed" mb="xs" lineClamp={2}>{bank.description || '暂无描述'}</Text>
+                {bank.storagePath && (
+                  <Group gap={4} mb="xs">
+                    <IconFolder size={12} style={{ color: 'var(--text-muted)' }} />
+                    <Text size="xs" c="dimmed" truncate>{bank.storagePath}</Text>
+                  </Group>
+                )}
+                {!bank.storagePath && (
+                  <Text size="xs" c="red" mb="xs">未设置数据目录</Text>
+                )}
                 <Group justify="space-between">
                   {getStatusBadge(bank)}
                   <Text size="xs" c="dimmed">{new Date(bank.updatedAt).toLocaleDateString('zh-CN')}</Text>
