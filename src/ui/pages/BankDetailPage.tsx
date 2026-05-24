@@ -255,6 +255,36 @@ export function BankDetailPage() {
           </Group>
         </ImportDropZone>
 
+        <details style={{ marginTop: 8, fontSize: '0.8rem' }}>
+          <summary style={{ cursor: 'pointer', color: 'var(--text-secondary)' }}>Markdown 格式说明</summary>
+          <Box style={{ padding: '8px 12px', marginTop: 4, background: 'var(--bg-muted)', borderRadius: 'var(--radius-sm)', fontFamily: 'monospace', fontSize: '0.75rem', lineHeight: '1.7', whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>{`# Q1 [单选题] [标签: 数学, 几何]
+题目内容，支持 $公式$ 和 ![图片](file.png)
+
+- A. 选项A（支持富文本内容）
+- B. 选项B
+
+> 答案: A
+> 解析: 这是一段解析，支持 $公式$
+
+---
+
+# Q2 [多选题]
+题目二
+
+- A. 冒泡排序
+- B. 快速排序
+- C. 归并排序
+
+> 答案: A, C
+
+---
+
+# Q3 [判断题]
+这是一个判断题
+
+> 答案: T`}</Box>
+        </details>
+
         <Group gap={0} mt="md" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
           {/* Left: Editor */}
           <Box style={{ flex: 1, minWidth: 0 }}>

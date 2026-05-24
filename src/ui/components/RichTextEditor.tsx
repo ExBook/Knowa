@@ -54,12 +54,16 @@ function MathDialog({ opened, onClose, onInsert }: { opened: boolean; onClose: (
   useEffect(() => { updatePreview(latex); }, [displayMode]);
 
   const handleInsert = () => {
-    if (latex.trim()) {
-      onInsert(latex.trim(), displayMode);
-      setLatex('');
-      setPreview('');
-      onClose();
-    }
+    if (!latex.trim()) return;
+    const formula = latex.trim();
+    const isBlock = displayMode;
+    setLatex('');
+    setPreview('');
+    onClose();
+    // Wait for modal to close before focusing editor
+    setTimeout(() => {
+      onInsert(formula, isBlock);
+    }, 150);
   };
 
   return (
