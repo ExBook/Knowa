@@ -230,7 +230,7 @@ export function BankDetailPage() {
         )}
       </Box>
 
-      <Modal opened={mdModalOpened} onClose={closeMdModal} title="导入题目" size="lg">
+      <Modal opened={mdModalOpened} onClose={closeMdModal} title="导入题目" size="xl">
         <ImportDropZone onFiles={handleFiles} accept=".md,.png,.jpg,.jpeg,.gif,.svg,.webp">
           <Group justify="center" gap="xs">
             <IconFileImport size={20} />
@@ -238,35 +238,66 @@ export function BankDetailPage() {
           </Group>
         </ImportDropZone>
 
-        <Text size="sm" c="dimmed" mt="md" mb="xs">已解析 {parseMarkdown(markdownText).length} 道题目</Text>
+        <Group gap={0} mt="md" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+          {/* Left: Editor */}
+          <Box style={{ flex: 1, minWidth: 0 }}>
+            <Group gap={2} p={4} style={{ borderBottom: '1px solid var(--border-light)', background: 'var(--bg-muted)' }}>
+              <Tooltip label="标题1" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.h1}><IconH1 size={15} /></ActionIcon></Tooltip>
+              <Tooltip label="标题2" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.h2}><IconH2 size={15} /></ActionIcon></Tooltip>
+              <Tooltip label="标题3" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.h3}><IconH3 size={15} /></ActionIcon></Tooltip>
+              <Divider orientation="vertical" mx={2} />
+              <Tooltip label="加粗" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.bold}><IconBold size={15} /></ActionIcon></Tooltip>
+              <Tooltip label="斜体" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.italic}><IconItalic size={15} /></ActionIcon></Tooltip>
+              <Tooltip label="代码块" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.code}><IconCode size={15} /></ActionIcon></Tooltip>
+              <Tooltip label="引用" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.quote}><IconBlockquote size={15} /></ActionIcon></Tooltip>
+              <Divider orientation="vertical" mx={2} />
+              <Tooltip label="无序列表" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.ul}><IconList size={15} /></ActionIcon></Tooltip>
+              <Tooltip label="有序列表" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.ol}><IconListNumbers size={15} /></ActionIcon></Tooltip>
+              <Divider orientation="vertical" mx={2} />
+              <Tooltip label="行内公式" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.inlineMath}><IconMath size={15} /></ActionIcon></Tooltip>
+              <Tooltip label="块公式" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.blockMath}><IconMathFunction size={15} /></ActionIcon></Tooltip>
+              <Divider orientation="vertical" mx={2} />
+              <Tooltip label="链接" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.link}><IconLink size={15} /></ActionIcon></Tooltip>
+              <Tooltip label="插入图片" withArrow><ActionIcon variant="subtle" size="sm" onClick={handleInsertImage}><IconPhoto size={15} /></ActionIcon></Tooltip>
+              <Tooltip label="分割线" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.hr}><IconSeparator size={15} /></ActionIcon></Tooltip>
+            </Group>
+            <textarea
+              ref={textareaRef}
+              value={markdownText}
+              onChange={(e) => setMarkdownText(e.target.value)}
+              rows={18}
+              style={{ width: '100%', fontFamily: '"JetBrains Mono", "Fira Code", monospace', fontSize: '0.82rem', lineHeight: '1.6', padding: 10, border: 'none', resize: 'none', outline: 'none', background: 'var(--bg-surface)' }}
+            />
+          </Box>
 
-        <Group gap={2} p={4} mb={0} style={{ border: '1px solid var(--border)', borderBottom: 'none', borderTopLeftRadius: 'var(--radius-sm)', borderTopRightRadius: 'var(--radius-sm)', background: 'var(--bg-muted)' }}>
-          <Tooltip label="标题1" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.h1}><IconH1 size={15} /></ActionIcon></Tooltip>
-          <Tooltip label="标题2" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.h2}><IconH2 size={15} /></ActionIcon></Tooltip>
-          <Tooltip label="标题3" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.h3}><IconH3 size={15} /></ActionIcon></Tooltip>
-          <Divider orientation="vertical" mx={2} />
-          <Tooltip label="加粗" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.bold}><IconBold size={15} /></ActionIcon></Tooltip>
-          <Tooltip label="斜体" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.italic}><IconItalic size={15} /></ActionIcon></Tooltip>
-          <Tooltip label="代码块" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.code}><IconCode size={15} /></ActionIcon></Tooltip>
-          <Tooltip label="引用" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.quote}><IconBlockquote size={15} /></ActionIcon></Tooltip>
-          <Divider orientation="vertical" mx={2} />
-          <Tooltip label="无序列表" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.ul}><IconList size={15} /></ActionIcon></Tooltip>
-          <Tooltip label="有序列表" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.ol}><IconListNumbers size={15} /></ActionIcon></Tooltip>
-          <Divider orientation="vertical" mx={2} />
-          <Tooltip label="链接" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.link}><IconLink size={15} /></ActionIcon></Tooltip>
-          <Tooltip label="行内公式" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.inlineMath}><IconMath size={15} /></ActionIcon></Tooltip>
-          <Tooltip label="块公式" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.blockMath}><IconMathFunction size={15} /></ActionIcon></Tooltip>
-          <Divider orientation="vertical" mx={2} />
-          <Tooltip label="插入图片" withArrow><ActionIcon variant="subtle" size="sm" onClick={handleInsertImage}><IconPhoto size={15} /></ActionIcon></Tooltip>
-          <Tooltip label="分割线" withArrow><ActionIcon variant="subtle" size="sm" onClick={mdActions.hr}><IconSeparator size={15} /></ActionIcon></Tooltip>
+          {/* Right: Preview */}
+          <Box style={{ width: 240, borderLeft: '1px solid var(--border)', background: 'var(--bg-muted)', padding: 12, overflowY: 'auto', maxHeight: 420 }}>
+            <Text size="xs" fw={600} c="dimmed" mb={8}>
+              {(() => { const p = parseMarkdown(markdownText); return `${p.length} 道题`; })()}
+            </Text>
+            {markdownText.trim() ? (
+              parseMarkdown(markdownText).map((q, i) => (
+                <Box key={i} mb={8} style={{ borderBottom: i < parseMarkdown(markdownText).length - 1 ? '1px solid var(--border-light)' : 'none', paddingBottom: 8 }}>
+                  <Group gap={4} mb={2}>
+                    <Badge size="xs" variant="light" color="slate">{i + 1}</Badge>
+                    <Badge size="xs" variant="outline" color={q.type === 'single' ? 'blue' : q.type === 'multiple' ? 'green' : 'orange'}>
+                      {q.type === 'single' ? '单选' : q.type === 'multiple' ? '多选' : '判断'}
+                    </Badge>
+                  </Group>
+                  <Text size="xs" lineClamp={2}>{extractText(q.body) || '(空题干)'}</Text>
+                  {q.tags.length > 0 && (
+                    <Group gap={2} mt={2}>
+                      {q.tags.map((t, ti) => <Badge key={ti} size="xs" variant="default" color="gray">{t}</Badge>)}
+                    </Group>
+                  )}
+                </Box>
+              ))
+            ) : (
+              <Text size="xs" c="dimmed" fs="italic">在左侧输入或拖入 .md 文件即可预览</Text>
+            )}
+          </Box>
         </Group>
-        <textarea
-          ref={textareaRef}
-          value={markdownText}
-          onChange={(e) => setMarkdownText(e.target.value)}
-          rows={16}
-          style={{ width: '100%', fontFamily: '"JetBrains Mono", "Fira Code", monospace', fontSize: '0.85rem', lineHeight: '1.6', padding: 12, border: '1px solid var(--border)', borderTop: 'none', borderBottomLeftRadius: 'var(--radius-sm)', borderBottomRightRadius: 'var(--radius-sm)', resize: 'vertical', outline: 'none', background: 'var(--bg-surface)' }}
-        />
+
         <Group justify="flex-end" mt="md">
           <Button variant="default" onClick={closeMdModal}>取消</Button>
           <Button onClick={handleImport} loading={importing} disabled={parseMarkdown(markdownText).length === 0}>导入</Button>
