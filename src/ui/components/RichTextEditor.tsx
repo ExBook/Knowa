@@ -2,11 +2,10 @@ import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import { common, createLowlight } from 'lowlight';
-import { RichTextEditor as MantineRichTextEditor, Link } from '@mantine/tiptap';
+import { RichTextEditor as MantineRichTextEditor } from '@mantine/tiptap';
 import { Box } from '@mantine/core';
 
 const lowlight = createLowlight(common);
@@ -22,7 +21,6 @@ export function RichTextEditor({ content, onChange, placeholder = '输入内容.
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ codeBlock: false }),
-      Underline,
       Image,
       CodeBlockLowlight.configure({ lowlight }),
       Placeholder.configure({ placeholder }),
@@ -30,7 +28,6 @@ export function RichTextEditor({ content, onChange, placeholder = '输入内容.
       TableRow,
       TableCell,
       TableHeader,
-      Link,
     ],
     content,
     onUpdate: ({ editor }) => {

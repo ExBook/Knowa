@@ -4,9 +4,9 @@ import { Sidebar } from './Sidebar';
 
 export function AppLayout() {
   return (
-    <Box style={{ display: 'flex', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
+    <Box style={{ display: 'flex', height: '100vh', position: 'relative', zIndex: 1, overflow: 'hidden' }}>
       <Sidebar />
-      <Box component="main" style={{ flex: 1, minWidth: 0 }}>
+      <Box component="main" style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
         <Outlet />
       </Box>
     </Box>
