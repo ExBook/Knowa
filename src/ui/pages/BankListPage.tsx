@@ -15,6 +15,7 @@ export function BankListPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState<string[]>([]);
+  const [storagePath, setStoragePath] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export function BankListPage() {
     setName('');
     setDescription('');
     setTags([]);
+    setStoragePath('');
     open();
   };
 
@@ -34,6 +36,7 @@ export function BankListPage() {
     setName(bank.name);
     setDescription(bank.description);
     setTags(bank.tags);
+    setStoragePath(bank.storagePath || '');
     open();
   };
 
@@ -41,9 +44,9 @@ export function BankListPage() {
     setSaving(true);
     try {
       if (editingBank) {
-        await updateBank(editingBank.id, { name, description, tags });
+        await updateBank(editingBank.id, { name, description, tags, storagePath });
       } else {
-        await createBank({ name, description, tags });
+        await createBank({ name, description, tags, storagePath: storagePath || undefined });
       }
       close();
     } finally {
@@ -134,6 +137,13 @@ export function BankListPage() {
           onChange={(e) => setDescription(e.currentTarget.value)}
           mb="md"
           minRows={2}
+        />
+        <TextInput
+          label="存储目录"
+          placeholder="选择数据存储目录（可选，Tauri 模式下可用）"
+          value={storagePath}
+          onChange={(e) => setStoragePath(e.currentTarget.value)}
+          mb="md"
         />
         <TagsInput
           label="标签"

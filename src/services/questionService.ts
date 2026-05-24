@@ -22,6 +22,10 @@ export const questionService = {
     return questionRepo.bulkCreate(inputs);
   },
 
+  async getQuestion(id: string): Promise<Question | undefined> {
+    return questionRepo.findById(id);
+  },
+
   async getQuestions(bankId: string): Promise<Question[]> {
     return questionRepo.findByBankId(bankId);
   },

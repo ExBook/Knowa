@@ -3,7 +3,7 @@ import { db } from './db';
 import type { Bank } from '../shared/types';
 
 type CreateInput = Omit<Bank, 'id' | 'createdAt' | 'updatedAt' | 'questionCount'>;
-type UpdateInput = Partial<Pick<Bank, 'name' | 'description' | 'tags'>>;
+type UpdateInput = Partial<Pick<Bank, 'name' | 'description' | 'tags' | 'storagePath'>>;
 
 export const bankRepo = {
   async create(input: CreateInput): Promise<Bank> {

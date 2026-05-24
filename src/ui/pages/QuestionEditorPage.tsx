@@ -1,8 +1,9 @@
-import { Box, Title, Group, Button, Select, TagsInput, ActionIcon, Stack, Text } from '@mantine/core';
-import { IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react';
+import { Box, Title, Group, Button, Select, TagsInput, ActionIcon, Stack, Text, Alert } from '@mantine/core';
+import { IconArrowLeft, IconPlus, IconTrash, IconAlertCircle } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuestionStore } from '../../stores/questionStore';
+import { questionService } from '../../services/questionService';
 import { RichTextEditor } from '../components/RichTextEditor';
 import type { Question } from '../../shared/types';
 
@@ -11,10 +12,9 @@ const emptyDoc = () => ({ type: 'doc', content: [{ type: 'paragraph', content: [
 export function QuestionEditorPage() {
   const { id, questionId } = useParams<{ id: string; questionId: string }>();
   const navigate = useNavigate();
-  const { questions, loadQuestions, createQuestion, updateQuestion } = useQuestionStore();
+  const { createQuestion, updateQuestion } = useQuestionStore();
 
   const isNew = questionId === 'new';
-  const existing = isNew ? null : questions.find((q) => q.id === questionId);
 
   const [type, setType] = useState<Question['type']>('single');
   const [body, setBody] = useState<object>(emptyDoc());
@@ -26,19 +26,21 @@ export function QuestionEditorPage() {
   const [explanation, setExplanation] = useState<object>(emptyDoc());
   const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => { if (id) loadQuestions(id); }, [id]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (existing) {
-      setType(existing.type);
-      setBody(existing.body);
-      setOptions(existing.options);
-      setAnswer(existing.answer);
-      setExplanation(existing.explanation);
-      setTags(existing.tags);
-    }
-  }, [existing]);
+    if (isNew || !questionId) return;
+    questionService.getQuestion(questionId).then((q) => {
+      if (q) {
+        setType(q.type);
+        setBody(q.body);
+        setOptions(q.options);
+        setAnswer(q.answer);
+        setExplanation(q.explanation);
+        setTags(q.tags);
+      }
+    });
+  }, [questionId, isNew]);
 
   const addOption = () => setOptions([...options, { index: options.length, content: emptyDoc() }]);
 
@@ -58,6 +60,7 @@ export function QuestionEditorPage() {
   const handleSave = async () => {
     if (!id) return;
     setSaving(true);
+    setError(null);
     try {
       const input = { bankId: id, type, body, options, answer, explanation, tags };
       if (isNew) {
@@ -66,7 +69,8 @@ export function QuestionEditorPage() {
         await updateQuestion(questionId!, input);
       }
       navigate(`/bank/${id}`);
-    } finally {
+    } catch (e) {
+      setError((e as Error).message);
       setSaving(false);
     }
   };
@@ -88,6 +92,12 @@ export function QuestionEditorPage() {
 
       <Box p="md" maw={900}>
         <Stack gap="md">
+          {error && (
+            <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light" onClose={() => setError(null)} withCloseButton>
+              {error}
+            </Alert>
+          )}
+
           <Group>
             <Select
               label="题型"

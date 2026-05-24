@@ -5,6 +5,7 @@ export interface Bank {
   name: string;
   description: string;
   tags: string[];
+  storagePath?: string;
   createdAt: number;
   updatedAt: number;
   questionCount: number;

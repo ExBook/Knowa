@@ -11,12 +11,15 @@ import { ImportDropZone } from '../components/ImportDropZone';
 import { EmptyState } from '../components/EmptyState';
 import type { Question } from '../../shared/types';
 
-function extractText(body: object): string {
-  try {
-    const doc = body as any;
-    if (doc.content?.[0]?.content?.[0]?.text) return doc.content[0].content[0].text;
-  } catch {}
-  return '(富文本内容)';
+function extractText(node: any): string {
+  if (!node) return '';
+  if (typeof node === 'string') return node;
+  if (node.text) return node.text;
+  if (node.content && Array.isArray(node.content)) {
+    const parts = node.content.map(extractText).filter(Boolean);
+    return parts.join(' ');
+  }
+  return '';
 }
 
 export function BankDetailPage() {
@@ -63,6 +66,12 @@ export function BankDetailPage() {
     await bulkCreateQuestions(parsed.map((p) => ({ ...p, bankId: id })));
     closeMdModal();
     await loadQuestions(id);
+  };
+
+  const handleDeleteQuestion = async (q: Question) => {
+    if (!id) return;
+    if (!confirm(`确定删除这道题目吗？此操作不可撤销。`)) return;
+    await deleteQuestion(q.id, id);
   };
 
   const handleExport = async (includeRecords: boolean) => {
@@ -132,7 +141,7 @@ export function BankDetailPage() {
                       <ActionIcon variant="subtle" size="sm" onClick={() => navigate(`/bank/${id}/editor/${q.id}`)}>
                         <IconEdit size={14} />
                       </ActionIcon>
-                      <ActionIcon variant="subtle" size="sm" color="red" onClick={() => deleteQuestion(q.id, id!)}>
+                      <ActionIcon variant="subtle" size="sm" color="red" onClick={() => handleDeleteQuestion(q)}>
                         <IconTrash size={14} />
                       </ActionIcon>
                     </Group>
