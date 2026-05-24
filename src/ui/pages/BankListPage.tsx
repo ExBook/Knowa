@@ -2,11 +2,13 @@ import { Box, Button, Group, LoadingOverlay, Text, Title, Modal, TextInput, Text
 import { useDisclosure } from '@mantine/hooks';
 import { IconFileImport, IconPlus, IconEdit, IconTrash } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useBankStore } from '../../stores/bankStore';
 import { EmptyState } from '../components/EmptyState';
 import type { Bank } from '../../shared/types';
 
 export function BankListPage() {
+  const navigate = useNavigate();
   const { banks, loading, loadBanks, createBank, updateBank, deleteBank } = useBankStore();
   const [opened, { open, close }] = useDisclosure(false);
   const [editingBank, setEditingBank] = useState<Bank | null>(null);
@@ -91,6 +93,7 @@ export function BankListPage() {
                 style={{ cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
                 onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+                onClick={() => navigate(`/bank/${bank.id}`)}
               >
                 <Group justify="space-between" mb="xs">
                   <Text fw={600} style={{ fontFamily: 'var(--font-display)' }}>{bank.name}</Text>
