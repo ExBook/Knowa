@@ -100,7 +100,7 @@ export function BankDetailPage() {
           </Group>
           <Group gap="sm">
             <Button variant="default" leftSection={<IconFileImport size={16} />} component="label" htmlFor="bank-drop-trigger">
-              导入
+              导入题目
               <input id="bank-drop-trigger" type="file" accept=".exbank,.md" multiple style={{ display: 'none' }}
                 onChange={(e) => { const files = Array.from(e.target.files || []); if (files.length) handleFileDrop(files); }} />
             </Button>

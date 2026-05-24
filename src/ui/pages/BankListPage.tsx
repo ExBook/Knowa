@@ -4,6 +4,7 @@ import { IconFileImport, IconPlus, IconEdit, IconTrash, IconFolder, IconFolderOp
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBankStore } from '../../stores/bankStore';
+import { importExbank } from '../../services/importExportService';
 import { EmptyState } from '../components/EmptyState';
 import type { Bank } from '../../shared/types';
 
@@ -65,6 +66,23 @@ export function BankListPage() {
     }
   };
 
+  const handleImportBank = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const file = files[0];
+    if (!file.name.endsWith('.exbank')) {
+      alert('仅支持 .exbank 格式的题库文件');
+      return;
+    }
+    try {
+      const result = await importExbank(file);
+      alert(`导入成功：创建题库「${result.bank.name}」，共 ${result.questionCount} 道题`);
+      await loadBanks();
+    } catch (err) {
+      alert(`导入失败：${(err as Error).message}`);
+    }
+  };
+
   const handleDelete = async (bank: Bank) => {
     if (confirm(`确定删除题库「${bank.name}」吗？此操作不可撤销。`)) {
       await deleteBank(bank.id);
@@ -85,7 +103,10 @@ export function BankListPage() {
             <Text size="xs" c="dimmed">{banks.length} 个题库</Text>
           </Box>
           <Group gap="sm">
-            <Button variant="default" leftSection={<IconFileImport size={16} />}>导入题库</Button>
+            <Button variant="default" leftSection={<IconFileImport size={16} />} component="label" htmlFor="import-bank-input">
+              导入题库
+              <input id="import-bank-input" type="file" accept=".exbank" style={{ display: 'none' }} onChange={handleImportBank} />
+            </Button>
             <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreate}>新建题库</Button>
           </Group>
         </Group>
@@ -97,7 +118,10 @@ export function BankListPage() {
           <EmptyState title="还没有题库" description="创建你的第一个题库，或导入别人的题库文件">
             <Group justify="center">
               <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreate}>新建题库</Button>
-              <Button variant="default" leftSection={<IconFileImport size={16} />}>导入题库</Button>
+              <Button variant="default" leftSection={<IconFileImport size={16} />} component="label" htmlFor="import-bank-input-2">
+                导入题库
+                <input id="import-bank-input-2" type="file" accept=".exbank" style={{ display: 'none' }} onChange={handleImportBank} />
+              </Button>
             </Group>
           </EmptyState>
         ) : (
