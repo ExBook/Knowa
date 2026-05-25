@@ -26,6 +26,7 @@ import {
 } from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { quizRecordRepo } from '../../repo/quizRecordRepo';
 import { detectDropType, exportBankToFile, importExbankIntoBank } from '../../services/importExportService';
 import { parseMarkdown } from '../../services/markdownParser';
 import { useBankStore } from '../../stores/bankStore';
@@ -174,6 +175,19 @@ export function BankDetailPage() {
     }
   };
 
+  const handleClearRecords = async () => {
+    if (!id || !window.confirm('确定清空该题库的所有做题记录吗？此操作不可撤销。')) {
+      return;
+    }
+
+    try {
+      await quizRecordRepo.deleteByBankId(id);
+      notifications.show({ color: 'green', title: '已清空', message: '该题库的做题记录已清空' });
+    } catch (error) {
+      notifications.show({ color: 'red', title: '清空失败', message: (error as Error).message });
+    }
+  };
+
   if (!bank) {
     return (
       <Box p="xl">
@@ -227,6 +241,9 @@ export function BankDetailPage() {
             </Button>
             <Button variant="default" leftSection={<IconFileTypePdf size={16} />} onClick={() => navigate(`/bank/${id}/export`)}>
               导出 PDF
+            </Button>
+            <Button variant="light" color="red" size="xs" onClick={() => void handleClearRecords()}>
+              清空记录
             </Button>
             <Button leftSection={<IconPlayerPlay size={16} />} onClick={() => navigate(`/bank/${id}/quiz`)}>
               开始做题
