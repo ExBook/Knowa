@@ -114,13 +114,18 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       });
     }
 
-    set((state) => ({
-      answers: {
+    set((state) => {
+      const nextAnswers = {
         ...state.answers,
         [question.id]: { ...entry, ...grade, duration, answered: true },
-      },
-      questionStartTime: Date.now(),
-    }));
+      };
+
+      return {
+        answers: nextAnswers,
+        finished: mode === 'practice' ? questions.every((item) => nextAnswers[item.id]?.answered) : state.finished,
+        questionStartTime: Date.now(),
+      };
+    });
   },
 
   submitAllAnswers: async () => {
