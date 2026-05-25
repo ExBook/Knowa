@@ -18,12 +18,15 @@ import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconEdit, IconFileImport, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { importExbank } from '../../services/importExportService';
 import type { Bank } from '../../shared/types';
 import { useBankStore } from '../../stores/bankStore';
 import { EmptyState } from '../components/EmptyState';
 
 export function BankListPage() {
   const { banks, loading, loadBanks, createBank, updateBank, deleteBank } = useBankStore();
+  const navigate = useNavigate();
   const [opened, { open, close }] = useDisclosure(false);
   const [editingBank, setEditingBank] = useState<Bank | null>(null);
   const [name, setName] = useState('');
@@ -32,6 +35,7 @@ export function BankListPage() {
   const [saving, setSaving] = useState(false);
   const [deletingBank, setDeletingBank] = useState<Bank | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     void loadBanks();
@@ -90,6 +94,24 @@ export function BankListPage() {
     }
   };
 
+  const handleImportBank = async (files: FileList | null) => {
+    const file = Array.from(files ?? []).find((item) => item.name.toLowerCase().endsWith('.exbank'));
+    if (!file) {
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const result = await importExbank(file);
+      await loadBanks();
+      notifications.show({ color: 'green', title: '导入成功', message: `已新建题库「${result.bank.name}」，共 ${result.questionCount} 道题` });
+    } catch (error) {
+      notifications.show({ color: 'red', title: '导入失败', message: (error as Error).message });
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const statusBadge = (bank: Bank) => {
     if (bank.questionCount === 0) {
       return (
@@ -119,8 +141,17 @@ export function BankListPage() {
             </Text>
           </Box>
           <Group gap="sm">
-            <Button variant="default" leftSection={<IconFileImport size={16} />}>
+            <Button variant="default" leftSection={<IconFileImport size={16} />} component="label" loading={importing}>
               导入题库
+              <input
+                type="file"
+                accept=".exbank"
+                hidden
+                onChange={(event) => {
+                  void handleImportBank(event.currentTarget.files);
+                  event.currentTarget.value = '';
+                }}
+              />
             </Button>
             <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreate}>
               新建题库
@@ -137,8 +168,17 @@ export function BankListPage() {
               <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreate}>
                 新建题库
               </Button>
-              <Button variant="default" leftSection={<IconFileImport size={16} />}>
+              <Button variant="default" leftSection={<IconFileImport size={16} />} component="label" loading={importing}>
                 导入题库
+                <input
+                  type="file"
+                  accept=".exbank"
+                  hidden
+                  onChange={(event) => {
+                    void handleImportBank(event.currentTarget.files);
+                    event.currentTarget.value = '';
+                  }}
+                />
               </Button>
             </Group>
           </EmptyState>
@@ -165,16 +205,34 @@ export function BankListPage() {
                   event.currentTarget.style.transform = '';
                   event.currentTarget.style.boxShadow = 'var(--shadow-sm)';
                 }}
+                onClick={() => navigate(`/bank/${bank.id}`)}
               >
                 <Group justify="space-between" align="flex-start" mb="xs" wrap="nowrap">
                   <Text fw={600} lineClamp={1} style={{ fontFamily: 'var(--font-display)' }}>
                     {bank.name}
                   </Text>
                   <Group gap={4} wrap="nowrap">
-                    <ActionIcon variant="subtle" size="sm" aria-label="编辑题库" onClick={() => handleOpenEdit(bank)}>
+                    <ActionIcon
+                      variant="subtle"
+                      size="sm"
+                      aria-label="编辑题库"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleOpenEdit(bank);
+                      }}
+                    >
                       <IconEdit size={15} />
                     </ActionIcon>
-                    <ActionIcon variant="subtle" size="sm" color="red" aria-label="删除题库" onClick={() => setDeletingBank(bank)}>
+                    <ActionIcon
+                      variant="subtle"
+                      size="sm"
+                      color="red"
+                      aria-label="删除题库"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDeletingBank(bank);
+                      }}
+                    >
                       <IconTrash size={15} />
                     </ActionIcon>
                   </Group>

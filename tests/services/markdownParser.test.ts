@@ -114,4 +114,20 @@ for (int i = 0; i < n; i++) {
     expect(result[0].type).toBe('single');
     expect(result[1].type).toBe('truefalse');
   });
+
+  it('parses English answer and explanation markers', () => {
+    const md = `# Q1
+What is 2 + 2?
+
+- A. 4
+- B. 5
+
+> Answer: A
+> Explanation: Basic arithmetic.`;
+
+    const result = parseMarkdown(md);
+    expect(result).toHaveLength(1);
+    expect(result[0].answer).toEqual([0]);
+    expect(JSON.stringify(result[0].explanation)).toContain('Basic arithmetic.');
+  });
 });

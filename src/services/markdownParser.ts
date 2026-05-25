@@ -114,14 +114,14 @@ function parseQuestionBlock(block: string): ParsedQuestion | null {
   const optionLines: string[] = [];
 
   for (const line of lines.slice(1)) {
-    const answerMatch = line.match(/^>\s*答案[:：]\s*(.+)$/);
+    const answerMatch = line.match(/^>\s*(?:答案|Answer)[:：]\s*(.+)$/i);
     if (answerMatch) {
       answerReached = true;
       answer = parseAnswer(answerMatch[1], type);
       continue;
     }
 
-    const explanationMatch = line.match(/^>\s*解析[:：]\s*(.*)$/);
+    const explanationMatch = line.match(/^>\s*(?:解析|Explanation)[:：]\s*(.*)$/i);
     if (explanationMatch) {
       answerReached = true;
       explanationLines.push(explanationMatch[1]);

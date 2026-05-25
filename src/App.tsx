@@ -7,7 +7,9 @@ import { Notifications } from '@mantine/notifications';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { theme } from './theme';
 import { AppLayout } from './ui/components/AppLayout';
+import { BankDetailPage } from './ui/pages/BankDetailPage';
 import { BankListPage } from './ui/pages/BankListPage';
+import { QuestionEditorPage } from './ui/pages/QuestionEditorPage';
 
 export default function App() {
   return (
@@ -17,6 +19,8 @@ export default function App() {
         <Routes>
           <Route element={<AppLayout />}>
             <Route path="/" element={<BankListPage />} />
+            <Route path="/bank/:id" element={<BankDetailPage />} />
+            <Route path="/bank/:id/editor/:questionId" element={<QuestionEditorPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

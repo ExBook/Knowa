@@ -145,13 +145,13 @@ function extractImages(questions: Question[]): {
   const exportedQuestions = questions.map((question) => ({
     id: question.id,
     type: question.type,
-    body: cloneWithImageExport(question.body, images, () => nextName()),
+    body: cloneWithImageExport(question.body, images, nextName),
     options: question.options.map((option) => ({
       ...option,
-      content: cloneWithImageExport(option.content, images, () => nextName()),
+      content: cloneWithImageExport(option.content, images, nextName),
     })),
     answer: question.answer,
-    explanation: cloneWithImageExport(question.explanation, images, () => nextName()),
+    explanation: cloneWithImageExport(question.explanation, images, nextName),
     order: question.order,
     tags: question.tags,
   }));
