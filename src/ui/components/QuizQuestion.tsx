@@ -1,7 +1,9 @@
 import { Badge, Box, Button, Group, Text } from '@mantine/core';
 import { IconCheck, IconX } from '@tabler/icons-react';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { Question } from '../../shared/types';
+import { useNoteStore } from '../../stores/noteStore';
+import { RichTextEditor } from './RichTextEditor';
 
 interface QuizQuestionProps {
   question: Question;
@@ -75,6 +77,41 @@ function renderTipTapContent(doc: unknown): ReactNode {
 
     return null;
   });
+}
+
+const emptyDoc = (): object => ({ type: 'doc', content: [{ type: 'paragraph', content: [] }] });
+
+function NotePanel({ questionId, bankId }: { questionId: string; bankId: string }) {
+  const { getNote, saveNote } = useNoteStore();
+  const existing = getNote(questionId);
+  const [content, setContent] = useState<object>(existing?.content ?? emptyDoc());
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (existing) {
+      setContent(existing.content);
+    }
+  }, [existing]);
+
+  const handleSave = async () => {
+    await saveNote(questionId, bankId, content);
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 1500);
+  };
+
+  return (
+    <Box mt="md">
+      <Group justify="space-between" mb="xs">
+        <Text size="sm" fw={500}>
+          我的笔记
+        </Text>
+        <Button size="xs" variant="light" onClick={() => void handleSave()}>
+          {saved ? '已保存' : '保存笔记'}
+        </Button>
+      </Group>
+      <RichTextEditor content={content} onChange={setContent} placeholder="记录你的解题思路..." minHeight={120} />
+    </Box>
+  );
 }
 
 export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, mode, readOnly }: QuizQuestionProps) {
@@ -195,6 +232,8 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, m
           {renderTipTapContent(question.explanation)}
         </Box>
       )}
+
+      {showResult && <NotePanel questionId={question.id} bankId={question.bankId} />}
     </Box>
   );
 }

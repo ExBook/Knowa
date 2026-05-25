@@ -2,6 +2,7 @@ import { Box, Button, Group, Modal, Select, Stack, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useNoteStore } from '../../stores/noteStore';
 import { useQuizStore } from '../../stores/quizStore';
 import { EmptyState } from '../components/EmptyState';
 import { QuizProgress } from '../components/QuizProgress';
@@ -15,6 +16,7 @@ export function QuizPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const store = useQuizStore();
+  const { loadNotes } = useNoteStore();
   const { questions, currentIndex, answers, mode, finished } = store;
   const [showSetup, { close: closeSetup }] = useDisclosure(true);
   const [selectedMode, setSelectedMode] = useState<QuizMode>('practice');
@@ -49,6 +51,7 @@ export function QuizPage() {
     }
 
     await store.startQuiz(id, selectedMode, selectedOrder);
+    await loadNotes(id);
     setTimer(0);
     setReviewMode(false);
     closeSetup();
