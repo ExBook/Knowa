@@ -11,6 +11,7 @@ import { AppLayout } from './ui/components/AppLayout';
 import { BankDetailPage } from './ui/pages/BankDetailPage';
 import { BankListPage } from './ui/pages/BankListPage';
 import { DashboardPage } from './ui/pages/DashboardPage';
+import { ExportPage } from './ui/pages/ExportPage';
 import { QuestionEditorPage } from './ui/pages/QuestionEditorPage';
 import { QuizPage } from './ui/pages/QuizPage';
 
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/bank/:id/editor/:questionId" element={<QuestionEditorPage />} />
             <Route path="/bank/:id/quiz" element={<QuizPage />} />
             <Route path="/bank/:id/stats" element={<DashboardPage />} />
+            <Route path="/bank/:id/export" element={<ExportPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

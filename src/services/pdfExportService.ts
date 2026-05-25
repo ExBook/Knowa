@@ -2,6 +2,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import type { Content } from 'pdfmake/interfaces';
 import type { Note, Question, QuizRecord } from '../shared/types';
 
 type PdfMakeApi = typeof pdfMake & {
@@ -105,7 +106,7 @@ function answerText(question: Question): string {
 }
 
 export async function generatePrecisePDF(questions: QuestionData[], options: ExportOptions): Promise<Blob> {
-  const content: unknown[] = [
+  const content: Content[] = [
     { text: options.bankName, style: 'title', margin: [0, 0, 0, 4] },
     {
       text: `导出日期: ${new Date().toLocaleDateString('zh-CN')} | ${questions.length} 题`,
