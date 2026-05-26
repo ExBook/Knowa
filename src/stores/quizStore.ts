@@ -6,6 +6,12 @@ import type { Question, QuizRecord } from '../shared/types';
 type QuizMode = 'practice' | 'exam';
 type OrderType = 'sequential' | 'shuffled';
 
+interface QuizFilter {
+  chapter?: string | null;
+  section?: string | null;
+  knowledgePoint?: string | null;
+}
+
 interface AnswerEntry {
   selected: number[];
   isCorrect: boolean;
@@ -31,7 +37,7 @@ interface QuizState {
   questionStartTime: number;
   sessionStartTime: number;
   finished: boolean;
-  startQuiz: (bankId: string, mode: QuizMode, orderType: OrderType) => Promise<void>;
+  startQuiz: (bankId: string, mode: QuizMode, orderType: OrderType, filter?: QuizFilter) => Promise<void>;
   selectAnswer: (questionId: string, selected: number[]) => void;
   submitCurrentAnswer: () => Promise<void>;
   submitAllAnswers: () => Promise<void>;
@@ -59,9 +65,15 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   sessionStartTime: 0,
   finished: false,
 
-  startQuiz: async (bankId, mode, orderType) => {
+  startQuiz: async (bankId, mode, orderType, filter) => {
     const loaded = await questionRepo.findByBankId(bankId);
-    const questions = orderType === 'shuffled' ? quizService.shuffleArray(loaded) : loaded;
+    const filtered = loaded.filter(
+      (question) =>
+        (!filter?.chapter || question.chapter === filter.chapter) &&
+        (!filter?.section || question.section === filter.section) &&
+        (!filter?.knowledgePoint || question.knowledgePoint === filter.knowledgePoint),
+    );
+    const questions = orderType === 'shuffled' ? quizService.shuffleArray(filtered) : filtered;
     const now = Date.now();
 
     set({

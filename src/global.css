@@ -128,6 +128,30 @@ a {
   vertical-align: baseline;
 }
 
+.math-inline-rendered {
+  color: var(--text-primary);
+  font-family: KaTeX_Main, 'Noto Serif SC', 'Times New Roman', serif;
+}
+
+.rich-editor-shell {
+  background: var(--bg-surface);
+}
+
+.rich-editor-shell .mantine-RichTextEditor-root,
+.rich-editor-shell .mantine-RichTextEditor-toolbar,
+.rich-editor-shell .mantine-RichTextEditor-content {
+  background: var(--bg-surface);
+}
+
+.rich-editor-shell .mantine-RichTextEditor-content {
+  min-height: inherit;
+}
+
+.rich-editor-shell .ProseMirror {
+  min-height: inherit;
+  padding: 14px 16px;
+}
+
 .mantine-RichTextEditor-content code,
 .mantine-RichTextEditor-root code {
   border-radius: var(--radius-sm);

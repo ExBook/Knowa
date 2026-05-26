@@ -1,5 +1,6 @@
-import { Badge, Box, Button, Group, Text } from '@mantine/core';
+import { Badge, Box, Button, Group, SimpleGrid, Text } from '@mantine/core';
 import { IconCheck, IconX } from '@tabler/icons-react';
+import katex from 'katex';
 import { useState, type ReactNode } from 'react';
 import type { Question } from '../../shared/types';
 import { useNoteStore } from '../../stores/noteStore';
@@ -32,15 +33,22 @@ function typeLabel(type: Question['type']): string {
   return '单选题';
 }
 
+function MathInline({ latex }: { latex: string }) {
+  let html = latex;
+  try {
+    html = katex.renderToString(latex, { throwOnError: false, displayMode: false });
+  } catch {
+    // Keep the original input visible if KaTeX cannot render it.
+  }
+
+  return <span className="math-inline math-inline-rendered" dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
 function renderInline(nodes: RichNode[] | undefined): ReactNode {
   return (
     nodes?.map((node, index) => {
       if (node.type === 'mathInline') {
-        return (
-          <span key={index} className="math-inline">
-            ${node.attrs?.latex ?? ''}$
-          </span>
-        );
+        return <MathInline key={index} latex={node.attrs?.latex ?? ''} />;
       }
 
       if (node.marks?.some((mark) => mark.type === 'code')) {
@@ -96,6 +104,21 @@ function renderTipTapContent(doc: unknown): ReactNode {
   });
 }
 
+function richTextLength(doc: unknown): number {
+  const root = doc as { content?: RichNode[] } | undefined;
+  const collect = (nodes: RichNode[] | undefined): string =>
+    nodes
+      ?.map((node) => {
+        if (node.type === 'mathInline') {
+          return node.attrs?.latex ?? '';
+        }
+        return `${node.text ?? ''}${collect(node.content)}`;
+      })
+      .join('') ?? '';
+
+  return collect(root?.content).length;
+}
+
 const emptyDoc = (): object => ({ type: 'doc', content: [{ type: 'paragraph', content: [] }] });
 
 function NotePanel({ questionId, bankId }: { questionId: string; bankId: string }) {
@@ -126,6 +149,7 @@ function NotePanel({ questionId, bankId }: { questionId: string; bankId: string 
 }
 
 export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, mode, readOnly }: QuizQuestionProps) {
+  const optionCols = question.options.some((option) => richTextLength(option.content) > 42) ? { base: 1 } : { base: 1, sm: 2 };
   const toggleOption = (index: number) => {
     if (readOnly) {
       return;
@@ -177,7 +201,7 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, m
       </Box>
 
       {question.type === 'truefalse' ? (
-        <Group gap="md">
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
           {[0, 1].map((index) => {
             const isSelected = selectedAnswer.includes(index);
             const isCorrect = question.answer.includes(index);
@@ -189,14 +213,15 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, m
                 leftSection={showResult && isCorrect ? <IconCheck size={14} /> : showResult && isSelected ? <IconX size={14} /> : undefined}
                 onClick={() => toggleOption(index)}
                 disabled={readOnly}
+                fullWidth
               >
                 {index === 0 ? '正确 (T)' : '错误 (F)'}
               </Button>
             );
           })}
-        </Group>
+        </SimpleGrid>
       ) : (
-        <Box>
+        <SimpleGrid cols={optionCols} spacing="sm">
           {question.options.map((option, index) => {
             const isSelected = selectedAnswer.includes(index);
             return (
@@ -209,8 +234,8 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, m
                 style={{
                   justifyContent: 'flex-start',
                   textAlign: 'left',
-                  marginBottom: 8,
                   height: 'auto',
+                  minHeight: 56,
                   padding: '12px 16px',
                 }}
                 styles={{
@@ -229,7 +254,7 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, m
               </Button>
             );
           })}
-        </Box>
+        </SimpleGrid>
       )}
 
       {showResult && (

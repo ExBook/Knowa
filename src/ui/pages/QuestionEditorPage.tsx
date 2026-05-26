@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Button, Group, Select, Stack, TagsInput, Text, Title } from '@mantine/core';
+import { ActionIcon, Box, Button, Group, Select, SimpleGrid, Stack, TagsInput, Text, TextInput, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
@@ -28,6 +28,9 @@ export function QuestionEditorPage() {
   const [answer, setAnswer] = useState<number[]>([]);
   const [explanation, setExplanation] = useState<object>(emptyDoc());
   const [tags, setTags] = useState<string[]>([]);
+  const [chapter, setChapter] = useState('');
+  const [section, setSection] = useState('');
+  const [knowledgePoint, setKnowledgePoint] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -52,6 +55,9 @@ export function QuestionEditorPage() {
         setAnswer(existing.answer);
         setExplanation(existing.explanation);
         setTags(existing.tags);
+        setChapter(existing.chapter ?? '');
+        setSection(existing.section ?? '');
+        setKnowledgePoint(existing.knowledgePoint ?? '');
       });
       return () => {
         cancelled = true;
@@ -103,9 +109,9 @@ export function QuestionEditorPage() {
     setSaving(true);
     try {
       if (isNew) {
-        await createQuestion({ bankId: id, type, body, options, answer, explanation, tags });
+        await createQuestion({ bankId: id, type, body, options, answer, explanation, tags, chapter, section, knowledgePoint });
       } else {
-        await updateQuestion(questionId, { type, body, options, answer, explanation, tags });
+        await updateQuestion(questionId, { type, body, options, answer, explanation, tags, chapter, section, knowledgePoint });
       }
       await loadBanks();
       navigate(`/bank/${id}`);
@@ -139,7 +145,7 @@ export function QuestionEditorPage() {
         </Group>
       </Box>
 
-      <Box p="xl" maw={980}>
+      <Box p="xl" maw={1120}>
         <Stack gap="lg">
           <Group align="flex-end">
             <Select
@@ -155,6 +161,17 @@ export function QuestionEditorPage() {
             />
             <TagsInput label="标签" placeholder="添加标签后按回车" value={tags} onChange={setTags} style={{ flex: 1 }} />
           </Group>
+
+          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+            <TextInput label="章" placeholder="例如 第一章 集合" value={chapter} onChange={(event) => setChapter(event.currentTarget.value)} />
+            <TextInput label="节" placeholder="例如 1.2 函数" value={section} onChange={(event) => setSection(event.currentTarget.value)} />
+            <TextInput
+              label="知识点"
+              placeholder="例如 单调性"
+              value={knowledgePoint}
+              onChange={(event) => setKnowledgePoint(event.currentTarget.value)}
+            />
+          </SimpleGrid>
 
           <Box>
             <Text size="sm" fw={500} mb={6}>

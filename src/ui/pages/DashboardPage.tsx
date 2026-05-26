@@ -1,5 +1,6 @@
 import { LineChart, PieChart } from '@mantine/charts';
-import { ActionIcon, Box, Button, Group, SimpleGrid, Tabs, Text, Title } from '@mantine/core';
+import { ActionIcon, Box, Button, Group, Modal, SimpleGrid, Tabs, Text, Title } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconArrowLeft, IconTrash } from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -40,6 +41,7 @@ export function DashboardPage() {
   const [stats, setStats] = useState<QuizStats>({ totalAnswered: 0, correctCount: 0, accuracy: 0, totalDuration: 0 });
   const [tagStats, setTagStats] = useState<TagStat[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyStat[]>([]);
+  const [clearModalOpened, { open: openClearModal, close: closeClearModal }] = useDisclosure(false);
 
   useEffect(() => {
     void loadBanks();
@@ -85,11 +87,12 @@ export function DashboardPage() {
   );
 
   const handleClearRecords = async () => {
-    if (!id || !window.confirm('确定清空该题库的所有做题记录吗？此操作不可撤销。')) {
+    if (!id) {
       return;
     }
 
     await quizRecordRepo.deleteByBankId(id);
+    closeClearModal();
     setStats({ totalAnswered: 0, correctCount: 0, accuracy: 0, totalDuration: 0 });
     setTagStats([]);
     setDailyStats([]);
@@ -108,7 +111,7 @@ export function DashboardPage() {
               {bank?.name ?? '题库'} · 数据看板
             </Title>
           </Group>
-          <Button variant="light" color="red" size="xs" leftSection={<IconTrash size={14} />} onClick={() => void handleClearRecords()}>
+          <Button variant="light" color="red" size="xs" leftSection={<IconTrash size={14} />} onClick={openClearModal}>
             清空做题记录
           </Button>
         </Group>
@@ -234,6 +237,20 @@ export function DashboardPage() {
           )}
         </Tabs.Panel>
       </Tabs>
+
+      <Modal opened={clearModalOpened} onClose={closeClearModal} title="清空做题记录" centered>
+        <Text size="sm" c="dimmed">
+          确定清空该题库的所有做题记录吗？此操作不可撤销，题目和笔记不会被删除。
+        </Text>
+        <Group justify="flex-end" mt="lg">
+          <Button variant="default" onClick={closeClearModal}>
+            取消
+          </Button>
+          <Button color="red" leftSection={<IconTrash size={14} />} onClick={() => void handleClearRecords()}>
+            清空记录
+          </Button>
+        </Group>
+      </Modal>
     </Box>
   );
 }

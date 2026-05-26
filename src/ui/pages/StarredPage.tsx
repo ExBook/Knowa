@@ -1,10 +1,11 @@
-import { ActionIcon, Badge, Box, Group, LoadingOverlay, Text, Title, Tooltip } from '@mantine/core';
+import { ActionIcon, Badge, Box, Group, LoadingOverlay, SegmentedControl, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconStarFilled } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { questionService } from '../../services/questionService';
 import type { Question } from '../../shared/types';
+import { useBankStore } from '../../stores/bankStore';
 import { EmptyState } from '../components/EmptyState';
 
 function extractText(body: object): string {
@@ -42,13 +43,16 @@ function typeLabel(type: Question['type']): string {
 
 export function StarredPage() {
   const navigate = useNavigate();
+  const { banks, loadBanks } = useBankStore();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
+  const [groupMode, setGroupMode] = useState<'bank' | 'chapter'>('bank');
 
   useEffect(() => {
     const loadStarred = async () => {
       setLoading(true);
       try {
+        await loadBanks();
         setQuestions(await questionService.getStarredQuestions());
       } finally {
         setLoading(false);
@@ -56,7 +60,17 @@ export function StarredPage() {
     };
 
     void loadStarred();
-  }, []);
+  }, [loadBanks]);
+
+  const bankName = useCallback((bankId: string) => banks.find((bank) => bank.id === bankId)?.name ?? '未知题库', [banks]);
+  const groupedQuestions = useMemo(() => {
+    const groups = new Map<string, Question[]>();
+    questions.forEach((question) => {
+      const key = groupMode === 'bank' ? bankName(question.bankId) : question.chapter || '未设置章节';
+      groups.set(key, [...(groups.get(key) ?? []), question]);
+    });
+    return Array.from(groups.entries());
+  }, [bankName, groupMode, questions]);
 
   const handleUnstar = async (question: Question) => {
     try {
@@ -78,37 +92,61 @@ export function StarredPage() {
             集中复习你在题库里标记过的重点题。
           </Text>
         </Box>
+        <SegmentedControl
+          value={groupMode}
+          onChange={(value) => setGroupMode(value as 'bank' | 'chapter')}
+          data={[
+            { value: 'bank', label: '按题库' },
+            { value: 'chapter', label: '按章节' },
+          ]}
+        />
       </Group>
 
       {questions.length === 0 ? (
         <EmptyState title="还没有收藏" description="在题库详情页点击星标后，题目会出现在这里。" />
       ) : (
-        <Box style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
-          {questions.map((question, index) => (
-            <Box key={question.id} style={{ padding: '14px 16px', borderBottom: index === questions.length - 1 ? 'none' : '1px solid var(--border-light)' }}>
-              <Group justify="space-between" gap="md" wrap="nowrap">
-                <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
-                  <Badge size="xs" color="slate" variant="outline">
-                    {typeLabel(question.type)}
-                  </Badge>
-                  <Text
-                    size="sm"
-                    lineClamp={1}
-                    style={{ maxWidth: 720, cursor: 'pointer' }}
-                    onClick={() => navigate(`/bank/${question.bankId}/editor/${question.id}`)}
-                  >
-                    {extractText(question.body)}
-                  </Text>
-                </Group>
-                <Tooltip label="取消收藏">
-                  <ActionIcon variant="subtle" color="yellow" aria-label="取消收藏" onClick={() => void handleUnstar(question)}>
-                    <IconStarFilled size={17} />
-                  </ActionIcon>
-                </Tooltip>
+        <Stack gap="md">
+          {groupedQuestions.map(([groupName, groupQuestions]) => (
+            <Box key={groupName} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
+              <Group justify="space-between" px="md" py="sm" style={{ borderBottom: '1px solid var(--border-light)' }}>
+                <Text fw={600}>{groupName}</Text>
+                <Badge variant="light">{groupQuestions.length} 题</Badge>
               </Group>
+              {groupQuestions.map((question, index) => (
+                <Box
+                  key={question.id}
+                  style={{ padding: '14px 16px', borderBottom: index === groupQuestions.length - 1 ? 'none' : '1px solid var(--border-light)' }}
+                >
+                  <Group justify="space-between" gap="md" wrap="nowrap">
+                    <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+                      <Badge size="xs" color="slate" variant="outline">
+                        {typeLabel(question.type)}
+                      </Badge>
+                      <Box style={{ minWidth: 0 }}>
+                        <Text
+                          size="sm"
+                          lineClamp={1}
+                          style={{ maxWidth: 720, cursor: 'pointer' }}
+                          onClick={() => navigate(`/bank/${question.bankId}/editor/${question.id}`)}
+                        >
+                          {extractText(question.body)}
+                        </Text>
+                        <Text size="xs" c="dimmed" lineClamp={1}>
+                          {[bankName(question.bankId), question.chapter, question.section, question.knowledgePoint].filter(Boolean).join(' / ')}
+                        </Text>
+                      </Box>
+                    </Group>
+                    <Tooltip label="取消收藏">
+                      <ActionIcon variant="subtle" color="yellow" aria-label="取消收藏" onClick={() => void handleUnstar(question)}>
+                        <IconStarFilled size={17} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Group>
+                </Box>
+              ))}
             </Box>
           ))}
-        </Box>
+        </Stack>
       )}
     </Box>
   );

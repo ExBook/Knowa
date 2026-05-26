@@ -1,8 +1,9 @@
-import { Box, Button, Group, Modal, SegmentedControl, Stack, Text } from '@mantine/core';
+import { Box, Button, Group, Modal, SegmentedControl, Select, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useNoteStore } from '../../stores/noteStore';
+import { useQuestionStore } from '../../stores/questionStore';
 import { useQuizStore } from '../../stores/quizStore';
 import { EmptyState } from '../components/EmptyState';
 import { QuizProgress } from '../components/QuizProgress';
@@ -17,13 +18,23 @@ export function QuizPage() {
   const navigate = useNavigate();
   const store = useQuizStore();
   const { loadNotes } = useNoteStore();
+  const { questions: setupQuestions, loadQuestions } = useQuestionStore();
   const { questions, currentIndex, answers, mode, finished } = store;
   const [showSetup, { close: closeSetup }] = useDisclosure(true);
   const [selectedMode, setSelectedMode] = useState<QuizMode>('practice');
   const [selectedOrder, setSelectedOrder] = useState<OrderType>('sequential');
+  const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+  const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [selectedKnowledge, setSelectedKnowledge] = useState<string | null>(null);
   const [timer, setTimer] = useState(0);
   const [reviewMode, setReviewMode] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      void loadQuestions(id);
+    }
+  }, [id, loadQuestions]);
 
   useEffect(() => {
     if (!finished && questions.length > 0 && !showSetup) {
@@ -44,13 +55,46 @@ export function QuizPage() {
   const currentQuestion = questions[currentIndex];
   const currentEntry = currentQuestion ? answers[currentQuestion.id] : undefined;
   const results = store.getResults();
+  const uniqueOptions = (values: Array<string | undefined>) =>
+    Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)))).map((value) => ({
+      value,
+      label: value,
+    }));
+  const chapterOptions = useMemo(() => uniqueOptions(setupQuestions.map((question) => question.chapter)), [setupQuestions]);
+  const sectionOptions = useMemo(
+    () => uniqueOptions(setupQuestions.filter((question) => !selectedChapter || question.chapter === selectedChapter).map((question) => question.section)),
+    [selectedChapter, setupQuestions],
+  );
+  const knowledgeOptions = useMemo(
+    () =>
+      uniqueOptions(
+        setupQuestions
+          .filter((question) => (!selectedChapter || question.chapter === selectedChapter) && (!selectedSection || question.section === selectedSection))
+          .map((question) => question.knowledgePoint),
+      ),
+    [selectedChapter, selectedSection, setupQuestions],
+  );
+  const filteredSetupCount = useMemo(
+    () =>
+      setupQuestions.filter(
+        (question) =>
+          (!selectedChapter || question.chapter === selectedChapter) &&
+          (!selectedSection || question.section === selectedSection) &&
+          (!selectedKnowledge || question.knowledgePoint === selectedKnowledge),
+      ).length,
+    [selectedChapter, selectedKnowledge, selectedSection, setupQuestions],
+  );
 
   const startQuiz = async () => {
     if (!id) {
       return;
     }
 
-    await store.startQuiz(id, selectedMode, selectedOrder);
+    await store.startQuiz(id, selectedMode, selectedOrder, {
+      chapter: selectedChapter,
+      section: selectedSection,
+      knowledgePoint: selectedKnowledge,
+    });
     await loadNotes(id);
     setTimer(0);
     setReviewMode(false);
@@ -66,6 +110,23 @@ export function QuizPage() {
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
+  };
+
+  const navColor = (questionId: string) => {
+    const entry = answers[questionId];
+    if (entry?.answered) {
+      if (entry.isCorrect) {
+        return 'green';
+      }
+      if (entry.partialCorrect) {
+        return 'yellow';
+      }
+      return 'red';
+    }
+    if (entry?.selected.length) {
+      return 'blue';
+    }
+    return 'gray';
   };
 
   if (showSetup) {
@@ -100,7 +161,46 @@ export function QuizPage() {
             value={selectedOrder}
             onChange={(value) => setSelectedOrder(value as OrderType)}
           />
-          <Button onClick={() => void startQuiz()} fullWidth size="lg">
+          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
+            <Select
+              label="章"
+              placeholder="全部"
+              data={chapterOptions}
+              value={selectedChapter}
+              onChange={(value) => {
+                setSelectedChapter(value);
+                setSelectedSection(null);
+                setSelectedKnowledge(null);
+              }}
+              clearable
+              searchable
+            />
+            <Select
+              label="节"
+              placeholder="全部"
+              data={sectionOptions}
+              value={selectedSection}
+              onChange={(value) => {
+                setSelectedSection(value);
+                setSelectedKnowledge(null);
+              }}
+              clearable
+              searchable
+            />
+            <Select
+              label="知识点"
+              placeholder="全部"
+              data={knowledgeOptions}
+              value={selectedKnowledge}
+              onChange={setSelectedKnowledge}
+              clearable
+              searchable
+            />
+          </SimpleGrid>
+          <Text size="xs" c="dimmed">
+            将开始 {filteredSetupCount} 道题。
+          </Text>
+          <Button onClick={() => void startQuiz()} fullWidth size="lg" disabled={filteredSetupCount === 0}>
             开始
           </Button>
         </Stack>
@@ -135,13 +235,13 @@ export function QuizPage() {
   }
 
   return (
-    <Box>
+    <Box style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box style={{ borderBottom: '1px solid var(--border-light)', padding: '16px 24px', background: 'var(--bg-surface)' }}>
         <QuizProgress current={currentIndex} total={questions.length} answeredCount={answeredCount} elapsed={timer} mode={mode} />
       </Box>
 
-      <Box p="xl" style={{ display: 'flex', gap: 24, maxWidth: 1040, margin: '0 auto' }}>
-        <Box style={{ flex: 1, minWidth: 0 }}>
+      <Box p="xl" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <Box style={{ maxWidth: 1040, margin: '0 auto', minWidth: 0 }}>
           {currentQuestion ? (
             <QuizQuestion
               question={currentQuestion}
@@ -155,42 +255,56 @@ export function QuizPage() {
             <Text c="dimmed">题目不存在</Text>
           )}
 
-          <Group justify="space-between" mt="xl" gap="sm">
-            <Button variant="default" disabled={currentIndex === 0} onClick={() => store.prevQuestion()}>
-              上一题
-            </Button>
-
-            <Group gap={4}>
-              {questions.map((question, index) => (
-                <Button
-                  key={question.id}
-                  variant={index === currentIndex ? 'filled' : answers[question.id]?.answered ? 'light' : 'outline'}
-                  size="xs"
-                  px={8}
-                  onClick={() => store.goToQuestion(index)}
-                >
-                  {index + 1}
-                </Button>
-              ))}
-            </Group>
-
-            {mode === 'practice' && !reviewMode && (
-              <Button onClick={() => void handleSubmitCurrent()} disabled={!currentEntry?.selected.length}>
-                提交答案
-              </Button>
-            )}
-
-            {mode === 'exam' && !reviewMode && (
-              <Button onClick={() => void handleSubmitAll()} disabled={answeredCount === 0}>
-                交卷
-              </Button>
-            )}
-
-            <Button variant="default" disabled={currentIndex === questions.length - 1} onClick={() => store.nextQuestion()}>
-              下一题
-            </Button>
-          </Group>
         </Box>
+      </Box>
+
+      <Box
+        style={{
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 5,
+          background: 'var(--bg-surface)',
+          borderTop: '1px solid var(--border-light)',
+          padding: '12px 24px',
+        }}
+      >
+        <Group justify="space-between" gap="sm" wrap="nowrap">
+          <Button variant="default" disabled={currentIndex === 0} onClick={() => store.prevQuestion()}>
+            上一题
+          </Button>
+
+          <Group gap={4} justify="center" style={{ flex: 1, minWidth: 0, overflow: 'auto' }} wrap="nowrap">
+            {questions.map((question, index) => (
+              <Button
+                key={question.id}
+                variant={index === currentIndex ? 'filled' : answers[question.id]?.answered || answers[question.id]?.selected.length ? 'light' : 'outline'}
+                color={index === currentIndex ? 'slate' : navColor(question.id)}
+                size="xs"
+                miw={34}
+                px={8}
+                onClick={() => store.goToQuestion(index)}
+              >
+                {index + 1}
+              </Button>
+            ))}
+          </Group>
+
+          {mode === 'practice' && !reviewMode && (
+            <Button onClick={() => void handleSubmitCurrent()} disabled={!currentEntry?.selected.length || currentEntry?.answered}>
+              提交答案
+            </Button>
+          )}
+
+          {mode === 'exam' && !reviewMode && (
+            <Button onClick={() => void handleSubmitAll()} disabled={answeredCount === 0}>
+              交卷
+            </Button>
+          )}
+
+          <Button variant="default" disabled={currentIndex === questions.length - 1} onClick={() => store.nextQuestion()}>
+            下一题
+          </Button>
+        </Group>
       </Box>
     </Box>
   );

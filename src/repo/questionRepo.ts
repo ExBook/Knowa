@@ -3,7 +3,9 @@ import { db } from './db';
 import type { Question } from '../shared/types';
 
 type CreateInput = Omit<Question, 'id' | 'createdAt' | 'order'>;
-type UpdateInput = Partial<Pick<Question, 'type' | 'body' | 'options' | 'answer' | 'explanation' | 'tags' | 'starred'>>;
+type UpdateInput = Partial<
+  Pick<Question, 'type' | 'body' | 'options' | 'answer' | 'explanation' | 'tags' | 'chapter' | 'section' | 'knowledgePoint' | 'starred'>
+>;
 
 async function updateQuestionCount(bankId: string, delta: number): Promise<void> {
   const bank = await db.banks.get(bankId);

@@ -2,7 +2,9 @@ import { questionRepo } from '../repo/questionRepo';
 import type { Question } from '../shared/types';
 
 type CreateInput = Omit<Question, 'id' | 'createdAt' | 'order'>;
-type UpdateInput = Partial<Pick<Question, 'type' | 'body' | 'options' | 'answer' | 'explanation' | 'tags' | 'starred'>>;
+type UpdateInput = Partial<
+  Pick<Question, 'type' | 'body' | 'options' | 'answer' | 'explanation' | 'tags' | 'chapter' | 'section' | 'knowledgePoint' | 'starred'>
+>;
 
 function hasRichContent(value: unknown): boolean {
   if (!value || typeof value !== 'object') {

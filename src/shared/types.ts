@@ -24,6 +24,9 @@ export interface Question {
   answer: number[];
   explanation: object;
   tags: string[];
+  chapter?: string;
+  section?: string;
+  knowledgePoint?: string;
   starred?: boolean;
   order: number;
   createdAt: number;

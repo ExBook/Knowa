@@ -9,6 +9,7 @@ import {
   LoadingOverlay,
   Modal,
   ScrollArea,
+  Select,
   SimpleGrid,
   Stack,
   Tabs,
@@ -129,6 +130,17 @@ function previewAnswer(question: ReturnType<typeof parseMarkdown>[number]): stri
   return question.answer.map((answer) => String.fromCharCode(65 + answer)).join(', ');
 }
 
+function uniqueOptions(values: Array<string | undefined>): Array<{ value: string; label: string }> {
+  return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)))).map((value) => ({
+    value,
+    label: value,
+  }));
+}
+
+function metaText(question: Question): string {
+  return [question.chapter, question.section, question.knowledgePoint].filter(Boolean).join(' / ');
+}
+
 export function BankDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -136,12 +148,40 @@ export function BankDetailPage() {
   const { questions, loading, loadQuestions, bulkCreateQuestions, updateQuestion, deleteQuestion } = useQuestionStore();
   const [markdownText, setMarkdownText] = useState('');
   const [mdModalOpened, { open: openMdModal, close: closeMdModal }] = useDisclosure(false);
+  const [clearModalOpened, { open: openClearModal, close: closeClearModal }] = useDisclosure(false);
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [chapterFilter, setChapterFilter] = useState<string | null>(null);
+  const [sectionFilter, setSectionFilter] = useState<string | null>(null);
+  const [knowledgeFilter, setKnowledgeFilter] = useState<string | null>(null);
   const bank = banks.find((item) => item.id === id);
   const parsedQuestions = useMemo(() => parseMarkdown(markdownText), [markdownText]);
   const markdownErrors = useMemo(() => validateMarkdownQuestions(parsedQuestions), [parsedQuestions]);
   const canImportMarkdown = parsedQuestions.length > 0 && markdownErrors.length === 0;
+  const chapterOptions = useMemo(() => uniqueOptions(questions.map((question) => question.chapter)), [questions]);
+  const sectionOptions = useMemo(
+    () => uniqueOptions(questions.filter((question) => !chapterFilter || question.chapter === chapterFilter).map((question) => question.section)),
+    [chapterFilter, questions],
+  );
+  const knowledgeOptions = useMemo(
+    () =>
+      uniqueOptions(
+        questions
+          .filter((question) => (!chapterFilter || question.chapter === chapterFilter) && (!sectionFilter || question.section === sectionFilter))
+          .map((question) => question.knowledgePoint),
+      ),
+    [chapterFilter, questions, sectionFilter],
+  );
+  const filteredQuestions = useMemo(
+    () =>
+      questions.filter(
+        (question) =>
+          (!chapterFilter || question.chapter === chapterFilter) &&
+          (!sectionFilter || question.section === sectionFilter) &&
+          (!knowledgeFilter || question.knowledgePoint === knowledgeFilter),
+      ),
+    [chapterFilter, knowledgeFilter, questions, sectionFilter],
+  );
 
   useEffect(() => {
     void loadBanks();
@@ -260,12 +300,13 @@ export function BankDetailPage() {
   };
 
   const handleClearRecords = async () => {
-    if (!id || !window.confirm('确定清空该题库的所有做题记录吗？此操作不可撤销。')) {
+    if (!id) {
       return;
     }
 
     try {
       await quizRecordRepo.deleteByBankId(id);
+      closeClearModal();
       notifications.show({ color: 'green', title: '已清空', message: '该题库的做题记录已清空' });
     } catch (error) {
       notifications.show({ color: 'red', title: '清空失败', message: (error as Error).message });
@@ -304,7 +345,7 @@ export function BankDetailPage() {
             <Button variant="default" leftSection={<IconFileTypePdf size={16} />} onClick={() => navigate(`/bank/${id}/export`)}>
               导出 PDF
             </Button>
-            <Button variant="light" color="red" size="xs" onClick={() => void handleClearRecords()}>
+            <Button variant="light" color="red" size="xs" onClick={openClearModal}>
               清空记录
             </Button>
             <Button leftSection={<IconPlayerPlay size={16} />} onClick={() => navigate(`/bank/${id}/quiz`)}>
@@ -323,10 +364,44 @@ export function BankDetailPage() {
           </Tabs.List>
 
           <Tabs.Panel value="list" pt="lg">
-            <Group mb="md">
+            <Group mb="md" align="flex-end">
               <Button leftSection={<IconPlus size={16} />} onClick={() => navigate(`/bank/${id}/editor/new`)}>
                 添加题目
               </Button>
+              <Select
+                label="章"
+                placeholder="全部"
+                data={chapterOptions}
+                value={chapterFilter}
+                onChange={(value) => {
+                  setChapterFilter(value);
+                  setSectionFilter(null);
+                  setKnowledgeFilter(null);
+                }}
+                clearable
+                searchable
+              />
+              <Select
+                label="节"
+                placeholder="全部"
+                data={sectionOptions}
+                value={sectionFilter}
+                onChange={(value) => {
+                  setSectionFilter(value);
+                  setKnowledgeFilter(null);
+                }}
+                clearable
+                searchable
+              />
+              <Select
+                label="知识点"
+                placeholder="全部"
+                data={knowledgeOptions}
+                value={knowledgeFilter}
+                onChange={setKnowledgeFilter}
+                clearable
+                searchable
+              />
             </Group>
 
             {questions.length === 0 ? (
@@ -335,18 +410,34 @@ export function BankDetailPage() {
                   添加题目
                 </Button>
               </EmptyState>
+            ) : filteredQuestions.length === 0 ? (
+              <EmptyState title="没有匹配的题目" description="换一个章、节或知识点筛选条件试试。" />
             ) : (
               <Box style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
-                {questions.map((question, index) => (
-                  <Box key={question.id} style={{ padding: '14px 16px', borderBottom: index === questions.length - 1 ? 'none' : '1px solid var(--border-light)' }}>
+                {filteredQuestions.map((question, index) => (
+                  <Box key={question.id} style={{ padding: '14px 16px', borderBottom: index === filteredQuestions.length - 1 ? 'none' : '1px solid var(--border-light)' }}>
                     <Group justify="space-between" gap="md" wrap="nowrap">
                       <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
                         <Badge variant="light" size="sm">
-                          {index + 1}
+                          {question.order}
                         </Badge>
-                        <Text size="sm" lineClamp={1} style={{ maxWidth: 620 }}>
-                          {extractText(question.body)}
-                        </Text>
+                        <Box style={{ minWidth: 0 }}>
+                          <Text size="sm" lineClamp={1} style={{ maxWidth: 460 }}>
+                            {extractText(question.body)}
+                          </Text>
+                          <Group gap={6} mt={4}>
+                            {metaText(question) && (
+                              <Text size="xs" c="dimmed" lineClamp={1}>
+                                {metaText(question)}
+                              </Text>
+                            )}
+                            {question.tags.slice(0, 3).map((tag) => (
+                              <Badge key={tag} size="xs" variant="light" color="gray">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </Group>
+                        </Box>
                         <Badge size="xs" color="slate" variant="outline">
                           {typeLabel(question.type)}
                         </Badge>
@@ -492,6 +583,20 @@ export function BankDetailPage() {
           </Button>
           <Button onClick={() => void handleMarkdownImport()} loading={importing} disabled={!canImportMarkdown}>
             导入
+          </Button>
+        </Group>
+      </Modal>
+
+      <Modal opened={clearModalOpened} onClose={closeClearModal} title="清空做题记录" centered>
+        <Text size="sm" c="dimmed">
+          确定清空该题库的所有做题记录吗？此操作不可撤销，题目和笔记不会被删除。
+        </Text>
+        <Group justify="flex-end" mt="lg">
+          <Button variant="default" onClick={closeClearModal}>
+            取消
+          </Button>
+          <Button color="red" onClick={() => void handleClearRecords()}>
+            清空记录
           </Button>
         </Group>
       </Modal>
