@@ -91,11 +91,37 @@ function parseBody(content: string): object {
       continue;
     }
 
+    if (line.trim().startsWith('$$')) {
+      const formulaLines: string[] = [];
+      const first = line.trim().replace(/^\$\$\s*/, '');
+      if (first && !first.endsWith('$$')) {
+        formulaLines.push(first);
+      } else if (first.endsWith('$$')) {
+        formulaLines.push(first.replace(/\s*\$\$$/, ''));
+        nodes.push({ type: 'mathBlock', attrs: { latex: formulaLines.join('\n').trim() } });
+        i += 1;
+        continue;
+      }
+
+      i += 1;
+      while (i < lines.length && !lines[i].trim().endsWith('$$')) {
+        formulaLines.push(lines[i]);
+        i += 1;
+      }
+      if (i < lines.length) {
+        formulaLines.push(lines[i].trim().replace(/\s*\$\$$/, ''));
+        i += 1;
+      }
+
+      nodes.push({ type: 'mathBlock', attrs: { latex: formulaLines.join('\n').trim() } });
+      continue;
+    }
+
     const imageMatch = line.trim().match(/^!\[(.*)]\((.+)\)$/);
     if (imageMatch) {
       nodes.push({
         type: 'image',
-        attrs: { src: imageMatch[2], alt: imageMatch[1], title: null },
+        attrs: { src: imageMatch[2], alt: imageMatch[1], title: null, width: 80, align: 'center' },
       });
       i += 1;
       continue;

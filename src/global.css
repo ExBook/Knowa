@@ -133,8 +133,21 @@ a {
   font-family: KaTeX_Main, 'Noto Serif SC', 'Times New Roman', serif;
 }
 
+.math-block {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 10px auto;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  overflow-x: auto;
+}
+
 .rich-editor-shell {
   background: var(--bg-surface);
+  overflow: auto !important;
 }
 
 .rich-editor-shell .mantine-RichTextEditor-root,
@@ -143,13 +156,38 @@ a {
   background: var(--bg-surface);
 }
 
+.rich-editor-shell .mantine-RichTextEditor-root {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .rich-editor-shell .mantine-RichTextEditor-content {
-  min-height: inherit;
+  flex: 1;
+  min-height: 0;
 }
 
 .rich-editor-shell .ProseMirror {
-  min-height: inherit;
+  min-height: 100%;
   padding: 14px 16px;
+}
+
+.page-header-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  border-bottom: 1px solid var(--border-light);
+  padding: 16px 24px;
+  background: color-mix(in srgb, var(--bg-surface) 94%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.quiz-option-letter {
+  flex-shrink: 0;
+  min-width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
 }
 
 .mantine-RichTextEditor-content code,

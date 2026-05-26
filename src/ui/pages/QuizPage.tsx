@@ -1,10 +1,13 @@
 import { Box, Button, Group, Modal, SegmentedControl, Select, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import { notifications } from '@mantine/notifications';
+import { IconArrowLeft, IconMaximize, IconMinimize, IconStar, IconStarFilled } from '@tabler/icons-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useNoteStore } from '../../stores/noteStore';
 import { useQuestionStore } from '../../stores/questionStore';
 import { useQuizStore } from '../../stores/quizStore';
+import { questionService } from '../../services/questionService';
 import { EmptyState } from '../components/EmptyState';
 import { QuizProgress } from '../components/QuizProgress';
 import { QuizQuestion } from '../components/QuizQuestion';
@@ -21,6 +24,7 @@ export function QuizPage() {
   const { questions: setupQuestions, loadQuestions } = useQuestionStore();
   const { questions, currentIndex, answers, mode, finished } = store;
   const [showSetup, { close: closeSetup }] = useDisclosure(true);
+  const [confirmSubmitOpened, { open: openConfirmSubmit, close: closeConfirmSubmit }] = useDisclosure(false);
   const [selectedMode, setSelectedMode] = useState<QuizMode>('practice');
   const [selectedOrder, setSelectedOrder] = useState<OrderType>('sequential');
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
@@ -28,6 +32,8 @@ export function QuizPage() {
   const [selectedKnowledge, setSelectedKnowledge] = useState<string | null>(null);
   const [timer, setTimer] = useState(0);
   const [reviewMode, setReviewMode] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [starredOverrides, setStarredOverrides] = useState<Record<string, boolean>>({});
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -107,9 +113,28 @@ export function QuizPage() {
 
   const handleSubmitAll = async () => {
     await store.submitAllAnswers();
+    closeConfirmSubmit();
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
+  };
+
+  const handleSubmitAllClick = () => {
+    if (answeredCount < questions.length) {
+      openConfirmSubmit();
+      return;
+    }
+    void handleSubmitAll();
+  };
+
+  const toggleStar = async () => {
+    if (!currentQuestion) {
+      return;
+    }
+    const next = !(starredOverrides[currentQuestion.id] ?? currentQuestion.starred ?? false);
+    await questionService.updateQuestion(currentQuestion.id, { starred: next });
+    setStarredOverrides((current) => ({ ...current, [currentQuestion.id]: next }));
+    notifications.show({ color: 'green', title: next ? '已收藏' : '已取消收藏', message: next ? '题目已加入收藏' : '题目已移出收藏' });
   };
 
   const navColor = (questionId: string) => {
@@ -235,9 +260,40 @@ export function QuizPage() {
   }
 
   return (
-    <Box style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box style={{ borderBottom: '1px solid var(--border-light)', padding: '16px 24px', background: 'var(--bg-surface)' }}>
-        <QuizProgress current={currentIndex} total={questions.length} answeredCount={answeredCount} elapsed={timer} mode={mode} />
+    <Box
+      style={{
+        minHeight: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        position: focusMode ? 'fixed' : 'relative',
+        inset: focusMode ? 0 : undefined,
+        zIndex: focusMode ? 40 : undefined,
+        background: 'var(--bg-root)',
+      }}
+    >
+      <Box style={{ borderBottom: '1px solid var(--border-light)', padding: '12px 24px', background: 'var(--bg-surface)' }}>
+        <Group justify="space-between" gap="md" wrap="nowrap">
+          <Group gap="xs" wrap="nowrap">
+            <Button variant="subtle" leftSection={<IconArrowLeft size={16} />} onClick={() => navigate(`/bank/${id}`)}>
+              返回
+            </Button>
+            <QuizProgress current={currentIndex} total={questions.length} answeredCount={answeredCount} elapsed={timer} mode={mode} />
+          </Group>
+          <Group gap="xs" wrap="nowrap">
+            <Button
+              variant="subtle"
+              color="yellow"
+              leftSection={(currentQuestion && (starredOverrides[currentQuestion.id] ?? currentQuestion.starred)) ? <IconStarFilled size={16} /> : <IconStar size={16} />}
+              onClick={() => void toggleStar()}
+              disabled={!currentQuestion}
+            >
+              收藏
+            </Button>
+            <Button variant="default" leftSection={focusMode ? <IconMinimize size={16} /> : <IconMaximize size={16} />} onClick={() => setFocusMode((value) => !value)}>
+              {focusMode ? '退出专注' : '专注模式'}
+            </Button>
+          </Group>
+        </Group>
       </Box>
 
       <Box p="xl" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
@@ -295,8 +351,8 @@ export function QuizPage() {
             </Button>
           )}
 
-          {mode === 'exam' && !reviewMode && (
-            <Button onClick={() => void handleSubmitAll()} disabled={answeredCount === 0}>
+          {!reviewMode && (
+            <Button onClick={handleSubmitAllClick}>
               交卷
             </Button>
           )}
@@ -306,6 +362,20 @@ export function QuizPage() {
           </Button>
         </Group>
       </Box>
+
+      <Modal opened={confirmSubmitOpened} onClose={closeConfirmSubmit} title="确认交卷" centered>
+        <Text size="sm" c="dimmed">
+          还有 {questions.length - answeredCount} 道题没有作答。未作答题会按 0 分计入本次记录，可以继续交卷。
+        </Text>
+        <Group justify="flex-end" mt="lg">
+          <Button variant="default" onClick={closeConfirmSubmit}>
+            继续作答
+          </Button>
+          <Button onClick={() => void handleSubmitAll()}>
+            交卷
+          </Button>
+        </Group>
+      </Modal>
     </Box>
   );
 }

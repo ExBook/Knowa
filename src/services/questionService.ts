@@ -75,6 +75,10 @@ export const questionService = {
     return questionRepo.findByBankId(bankId);
   },
 
+  async getAllQuestions(): Promise<Question[]> {
+    return questionRepo.findAll();
+  },
+
   async getStarredQuestions(): Promise<Question[]> {
     return questionRepo.findStarred();
   },

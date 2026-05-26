@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { questionRepo } from '../repo/questionRepo';
+import { getAppSettings } from '../services/appSettings';
 import { quizService } from '../services/quizService';
 import type { Question, QuizRecord } from '../shared/types';
 
@@ -55,6 +56,20 @@ const emptyEntry = (): AnswerEntry => ({
   answered: false,
 });
 
+function consumeReviewQuestionIds(): Set<string> | null {
+  const raw = window.sessionStorage.getItem('exlocal.reviewQuestionIds');
+  if (!raw) {
+    return null;
+  }
+  window.sessionStorage.removeItem('exlocal.reviewQuestionIds');
+  try {
+    const ids = JSON.parse(raw) as string[];
+    return new Set(ids);
+  } catch {
+    return null;
+  }
+}
+
 export const useQuizStore = create<QuizState>((set, get) => ({
   mode: 'practice',
   orderType: 'sequential',
@@ -67,8 +82,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
 
   startQuiz: async (bankId, mode, orderType, filter) => {
     const loaded = await questionRepo.findByBankId(bankId);
+    const reviewIds = consumeReviewQuestionIds();
     const filtered = loaded.filter(
       (question) =>
+        (!reviewIds || reviewIds.has(question.id)) &&
         (!filter?.chapter || question.chapter === filter.chapter) &&
         (!filter?.section || question.section === filter.section) &&
         (!filter?.knowledgePoint || question.knowledgePoint === filter.knowledgePoint),
@@ -126,6 +143,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       });
     }
 
+    if (!grade.isCorrect && getAppSettings().autoFavoriteWrong) {
+      await questionRepo.update(question.id, { starred: true });
+    }
+
     set((state) => {
       const nextAnswers = {
         ...state.answers,
@@ -142,30 +163,30 @@ export const useQuizStore = create<QuizState>((set, get) => ({
 
   submitAllAnswers: async () => {
     const { questions, answers, mode } = get();
+    const settings = getAppSettings();
     const records: Omit<QuizRecord, 'id' | 'timestamp'>[] = [];
     const updated: Record<string, AnswerEntry> = {};
 
     for (const question of questions) {
       const entry = answers[question.id];
-      if (entry?.selected.length) {
-        const grade = quizService.gradeQuestion(question, entry.selected);
-        records.push({
-          questionId: question.id,
-          bankId: question.bankId,
-          selectedAnswer: entry.selected,
-          isCorrect: grade.isCorrect,
-          duration: 0,
-          mode,
-        });
-        updated[question.id] = { ...entry, ...grade, duration: 0, answered: true };
-      } else {
-        updated[question.id] = entry ?? emptyEntry();
+      const selected = entry?.selected ?? [];
+      const grade = selected.length > 0 ? quizService.gradeQuestion(question, selected) : { isCorrect: false, partialCorrect: false };
+      records.push({
+        questionId: question.id,
+        bankId: question.bankId,
+        selectedAnswer: selected,
+        isCorrect: grade.isCorrect,
+        duration: 0,
+        mode,
+      });
+      updated[question.id] = { ...(entry ?? emptyEntry()), selected, ...grade, duration: 0, answered: true };
+
+      if (!grade.isCorrect && settings.autoFavoriteWrong) {
+        await questionRepo.update(question.id, { starred: true });
       }
     }
 
-    if (records.length > 0) {
-      await quizService.submitBulk(records);
-    }
+    await quizService.submitBulk(records);
 
     set({ answers: updated, finished: true });
   },

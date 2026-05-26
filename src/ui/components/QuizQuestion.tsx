@@ -18,7 +18,7 @@ interface QuizQuestionProps {
 type RichNode = {
   type?: string;
   text?: string;
-  attrs?: { src?: string; alt?: string; language?: string; latex?: string };
+  attrs?: { src?: string; alt?: string; language?: string; latex?: string; width?: number; align?: string };
   marks?: Array<{ type?: string }>;
   content?: RichNode[];
 };
@@ -96,8 +96,25 @@ function renderTipTapContent(doc: unknown): ReactNode {
       );
     }
 
+    if (node.type === 'mathBlock') {
+      return (
+        <Box key={index} className="math-block">
+          <MathInline latex={node.attrs?.latex ?? ''} />
+        </Box>
+      );
+    }
+
     if (node.type === 'image' && node.attrs?.src) {
-      return <img key={index} src={node.attrs.src} alt={node.attrs.alt ?? ''} style={{ maxWidth: '100%', borderRadius: 'var(--radius-sm)' }} />;
+      const width = Number(node.attrs.width ?? 100);
+      const margin = node.attrs.align === 'left' ? '8px auto 8px 0' : node.attrs.align === 'right' ? '8px 0 8px auto' : '8px auto';
+      return (
+        <img
+          key={index}
+          src={node.attrs.src}
+          alt={node.attrs.alt ?? ''}
+          style={{ display: 'block', width: `${width}%`, maxWidth: '100%', height: 'auto', margin, borderRadius: 'var(--radius-sm)' }}
+        />
+      );
     }
 
     return null;
@@ -246,7 +263,7 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, m
                 disabled={readOnly}
                 leftSection={
                   <Badge size="sm" radius="xl" variant={isSelected ? 'filled' : 'light'} color={isSelected ? 'slate' : 'gray'}>
-                    {String.fromCharCode(65 + index)}
+                    <span className="quiz-option-letter">{String.fromCharCode(65 + index)}</span>
                   </Badge>
                 }
               >

@@ -1,9 +1,9 @@
 import '@mantine/tiptap/styles.css';
 import 'katex/dist/katex.min.css';
 
-import { Box, Button, Group, Popover, TextInput } from '@mantine/core';
+import { Box, Button, Group, Popover, SegmentedControl, Slider, Text, TextInput } from '@mantine/core';
 import { Link, RichTextEditor as MantineRichTextEditor } from '@mantine/tiptap';
-import { IconCheck, IconMathFunction } from '@tabler/icons-react';
+import { IconCheck, IconMathFunction, IconPhoto } from '@tabler/icons-react';
 import { mergeAttributes, Node } from '@tiptap/core';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Image from '@tiptap/extension-image';
@@ -43,6 +43,19 @@ function MathInlineView({ node }: NodeViewProps) {
   );
 }
 
+function MathBlockView({ node }: NodeViewProps) {
+  const latex = String(node.attrs.latex ?? '');
+
+  return (
+    <NodeViewWrapper
+      className="math-block math-inline-rendered"
+      data-math-block="true"
+      data-latex={latex}
+      dangerouslySetInnerHTML={{ __html: renderMath(latex) }}
+    />
+  );
+}
+
 const MathInline = Node.create({
   name: 'mathInline',
   group: 'inline',
@@ -76,6 +89,70 @@ const MathInline = Node.create({
   },
 });
 
+const MathBlock = Node.create({
+  name: 'mathBlock',
+  group: 'block',
+  atom: true,
+
+  addAttributes() {
+    return {
+      latex: {
+        default: '',
+        parseHTML: (element) => element.getAttribute('data-latex') ?? '',
+        renderHTML: (attributes) => ({ 'data-latex': attributes.latex }),
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'div[data-math-block]' }];
+  },
+
+  renderHTML({ node, HTMLAttributes }) {
+    return ['div', mergeAttributes(HTMLAttributes, { 'data-math-block': 'true', class: 'math-block' }), node.attrs.latex ?? ''];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(MathBlockView);
+  },
+});
+
+const StyledImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: 100,
+        parseHTML: (element) => Number(element.getAttribute('data-width') ?? 100),
+        renderHTML: (attributes) => ({ 'data-width': attributes.width }),
+      },
+      align: {
+        default: 'center',
+        parseHTML: (element) => element.getAttribute('data-align') ?? 'center',
+        renderHTML: (attributes) => ({ 'data-align': attributes.align }),
+      },
+    };
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const width = Number(HTMLAttributes.width ?? 100);
+    const align = String(HTMLAttributes.align ?? 'center');
+    const margin =
+      align === 'left'
+        ? '8px auto 8px 0'
+        : align === 'right'
+          ? '8px 0 8px auto'
+          : '8px auto';
+
+    return [
+      'img',
+      mergeAttributes(HTMLAttributes, {
+        style: `display:block;max-width:100%;width:${width}%;height:auto;margin:${margin};border-radius:6px;`,
+      }),
+    ];
+  },
+});
+
 interface RichTextEditorProps {
   content: object;
   onChange: (json: object) => void;
@@ -91,11 +168,16 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   const [mathOpened, setMathOpened] = useState(false);
   const [latexDraft, setLatexDraft] = useState('');
+  const [mathMode, setMathMode] = useState<'inline' | 'block'>('inline');
+  const [imageOpened, setImageOpened] = useState(false);
+  const [imageSrc, setImageSrc] = useState('');
+  const [imageWidth, setImageWidth] = useState(80);
+  const [imageAlign, setImageAlign] = useState<'left' | 'center' | 'right'>('center');
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ codeBlock: false }),
       Underline,
-      Image,
+      StyledImage,
       CodeBlockLowlight.configure({ lowlight }),
       Placeholder.configure({ placeholder }),
       Table.configure({ resizable: true }),
@@ -104,6 +186,7 @@ export function RichTextEditor({
       TableHeader,
       Link,
       MathInline,
+      MathBlock,
     ],
     content,
     onUpdate: ({ editor: currentEditor }) => {
@@ -127,9 +210,41 @@ export function RichTextEditor({
       return;
     }
 
-    editor?.chain().focus().insertContent({ type: 'mathInline', attrs: { latex: latexDraft.trim() } }).run();
+    editor
+      ?.chain()
+      .focus()
+      .insertContent({ type: mathMode === 'block' ? 'mathBlock' : 'mathInline', attrs: { latex: latexDraft.trim() } })
+      .run();
     setLatexDraft('');
     setMathOpened(false);
+  };
+
+  const handleImageFile = (file: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageSrc(String(reader.result ?? ''));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const insertImage = () => {
+    if (!imageSrc) {
+      return;
+    }
+
+    editor
+      ?.chain()
+      .focus()
+      .insertContent({ type: 'image', attrs: { src: imageSrc, width: imageWidth, align: imageAlign } })
+      .run();
+    setImageSrc('');
+    setImageWidth(80);
+    setImageAlign('center');
+    setImageOpened(false);
   };
 
   return (
@@ -186,6 +301,15 @@ export function RichTextEditor({
                     placeholder="x^2 + y^2 = z^2"
                     data-autofocus
                   />
+                  <SegmentedControl
+                    size="xs"
+                    value={mathMode}
+                    onChange={(value) => setMathMode(value as 'inline' | 'block')}
+                    data={[
+                      { value: 'inline', label: '行内' },
+                      { value: 'block', label: '整行' },
+                    ]}
+                  />
                   <Button size="xs" onClick={insertMath} leftSection={<IconCheck size={14} />} disabled={!latexDraft.trim()}>
                     确定
                   </Button>
@@ -195,6 +319,40 @@ export function RichTextEditor({
           </MantineRichTextEditor.ControlsGroup>
 
           <MantineRichTextEditor.ControlsGroup>
+            <Popover opened={imageOpened} onChange={setImageOpened} position="bottom-start" shadow="md" withArrow>
+              <Popover.Target>
+                <MantineRichTextEditor.Control aria-label="插入图片" title="插入图片" onClick={() => setImageOpened((opened) => !opened)}>
+                  <IconPhoto size={16} />
+                </MantineRichTextEditor.Control>
+              </Popover.Target>
+              <Popover.Dropdown>
+                <Box w={260}>
+                  <Button variant="default" component="label" fullWidth size="xs" leftSection={<IconPhoto size={14} />}>
+                    选择图片
+                    <input type="file" hidden accept="image/*" onChange={(event) => handleImageFile(event.currentTarget.files?.[0] ?? null)} />
+                  </Button>
+                  <Text size="xs" c="dimmed" mt="sm" mb={4}>
+                    缩放比例
+                  </Text>
+                  <Slider value={imageWidth} onChange={setImageWidth} min={20} max={100} step={5} label={(value) => `${value}%`} />
+                  <SegmentedControl
+                    fullWidth
+                    size="xs"
+                    mt="sm"
+                    value={imageAlign}
+                    onChange={(value) => setImageAlign(value as 'left' | 'center' | 'right')}
+                    data={[
+                      { value: 'left', label: '左' },
+                      { value: 'center', label: '中' },
+                      { value: 'right', label: '右' },
+                    ]}
+                  />
+                  <Button fullWidth size="xs" mt="sm" onClick={insertImage} disabled={!imageSrc}>
+                    插入图片
+                  </Button>
+                </Box>
+              </Popover.Dropdown>
+            </Popover>
             <MantineRichTextEditor.Link />
             <MantineRichTextEditor.Unlink />
             <MantineRichTextEditor.Hr />

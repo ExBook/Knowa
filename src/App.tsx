@@ -16,6 +16,7 @@ import { QuestionEditorPage } from './ui/pages/QuestionEditorPage';
 import { QuizPage } from './ui/pages/QuizPage';
 import { SettingsPage } from './ui/pages/SettingsPage';
 import { StarredPage } from './ui/pages/StarredPage';
+import { WrongRecordsPage } from './ui/pages/WrongRecordsPage';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/bank/:id/stats" element={<DashboardPage />} />
             <Route path="/bank/:id/export" element={<ExportPage />} />
             <Route path="/starred" element={<StarredPage />} />
+            <Route path="/wrong" element={<WrongRecordsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>

@@ -73,6 +73,10 @@ export const questionRepo = {
     return db.questions.where('bankId').equals(bankId).sortBy('order');
   },
 
+  async findAll(): Promise<Question[]> {
+    return db.questions.toArray();
+  },
+
   async findStarred(): Promise<Question[]> {
     const questions = await db.questions.toArray();
     return questions.filter((question) => question.starred).sort((a, b) => b.createdAt - a.createdAt);

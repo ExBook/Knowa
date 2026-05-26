@@ -1,11 +1,12 @@
 import { ActionIcon, Box, Group, NavLink, Stack, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
-import { IconBooks, IconChevronLeft, IconChevronRight, IconMoon, IconSettings, IconStar, IconSun } from '@tabler/icons-react';
+import { IconBooks, IconChevronLeft, IconChevronRight, IconMoon, IconSettings, IconStar, IconSun, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const navItems = [
   { to: '/', icon: IconBooks, label: '题库' },
   { to: '/starred', icon: IconStar, label: '收藏的题' },
+  { to: '/wrong', icon: IconX, label: '错题记录' },
   { to: '/settings', icon: IconSettings, label: '设置' },
 ];
 

@@ -130,7 +130,7 @@ export function BankListPage() {
 
   return (
     <Box>
-      <Box style={{ borderBottom: '1px solid var(--border-light)', padding: '16px 24px', background: 'var(--bg-surface)' }}>
+      <Box className="page-header-sticky">
         <Group justify="space-between" align="center">
           <Box>
             <Title order={2} style={{ margin: 0 }}>

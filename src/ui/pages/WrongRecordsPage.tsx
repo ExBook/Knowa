@@ -1,86 +1,95 @@
 import { ActionIcon, Badge, Box, Button, Checkbox, Group, LoadingOverlay, SegmentedControl, Stack, Text, Title, Tooltip } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { IconPlayerPlay, IconStarFilled } from '@tabler/icons-react';
+import { IconPlayerPlay, IconStar, IconStarFilled } from '@tabler/icons-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { quizRecordRepo } from '../../repo/quizRecordRepo';
+import { getAppSettings } from '../../services/appSettings';
 import { questionService } from '../../services/questionService';
-import type { Question } from '../../shared/types';
+import type { Question, QuizRecord } from '../../shared/types';
 import { useBankStore } from '../../stores/bankStore';
 import { EmptyState } from '../components/EmptyState';
 
 function extractText(body: object): string {
   const texts: string[] = [];
-
-  function walk(value: unknown): void {
+  const walk = (value: unknown): void => {
     if (!value || typeof value !== 'object') {
       return;
     }
-
     const node = value as { type?: string; text?: string; attrs?: { alt?: string; latex?: string }; content?: unknown[] };
     if (node.type === 'mathInline') {
-      texts.push(`$${node.attrs?.latex ?? ''}$`);
+      texts.push(node.attrs?.latex ?? '');
     } else if (node.text) {
       texts.push(node.text);
     } else if (node.type === 'image') {
       texts.push(node.attrs?.alt ? `[图片: ${node.attrs.alt}]` : '[图片]');
     }
     node.content?.forEach(walk);
-  }
+  };
 
   walk(body);
   return texts.join(' ').trim() || '(富文本内容)';
 }
 
-function typeLabel(type: Question['type']): string {
-  if (type === 'multiple') {
-    return '多选';
-  }
-  if (type === 'truefalse') {
-    return '判断';
-  }
-  return '单选';
+function latestRecord(records: QuizRecord[]): QuizRecord | undefined {
+  return [...records].sort((a, b) => b.timestamp - a.timestamp)[0];
 }
 
-export function StarredPage() {
+export function WrongRecordsPage() {
   const navigate = useNavigate();
   const { banks, loadBanks } = useBankStore();
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [records, setRecords] = useState<QuizRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [groupMode, setGroupMode] = useState<'bank' | 'chapter'>('bank');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const settings = getAppSettings();
 
   useEffect(() => {
-    const loadStarred = async () => {
+    const load = async () => {
       setLoading(true);
       try {
         await loadBanks();
-        setQuestions(await questionService.getStarredQuestions());
+        const loadedQuestions = await questionService.getAllQuestions();
+        const bankIds = Array.from(new Set(loadedQuestions.map((question) => question.bankId)));
+        const bankRecords = await Promise.all(bankIds.map((bankId) => quizRecordRepo.findByBankId(bankId)));
+        setQuestions(loadedQuestions);
+        setRecords(bankRecords.flat());
       } finally {
         setLoading(false);
       }
     };
 
-    void loadStarred();
+    void load();
   }, [loadBanks]);
 
   const bankName = useCallback((bankId: string) => banks.find((bank) => bank.id === bankId)?.name ?? '未知题库', [banks]);
-  const groupedQuestions = useMemo(() => {
+  const wrongQuestions = useMemo(() => {
+    return questions.filter((question) => {
+      const questionRecords = records.filter((record) => record.questionId === question.id);
+      if (questionRecords.length === 0) {
+        return false;
+      }
+
+      if (settings.removeWrongWhenCorrect) {
+        return latestRecord(questionRecords)?.isCorrect === false;
+      }
+
+      return questionRecords.some((record) => !record.isCorrect);
+    });
+  }, [questions, records, settings.removeWrongWhenCorrect]);
+
+  const grouped = useMemo(() => {
     const groups = new Map<string, Question[]>();
-    questions.forEach((question) => {
+    wrongQuestions.forEach((question) => {
       const key = groupMode === 'bank' ? bankName(question.bankId) : question.chapter || '未设置章节';
       groups.set(key, [...(groups.get(key) ?? []), question]);
     });
     return Array.from(groups.entries());
-  }, [bankName, groupMode, questions]);
+  }, [bankName, groupMode, wrongQuestions]);
 
-  const handleUnstar = async (question: Question) => {
-    try {
-      await questionService.updateQuestion(question.id, { starred: false });
-      setQuestions((items) => items.filter((item) => item.id !== question.id));
-      notifications.show({ color: 'green', title: '已取消收藏', message: '题目已从收藏列表移除' });
-    } catch (error) {
-      notifications.show({ color: 'red', title: '操作失败', message: (error as Error).message });
-    }
+  const toggleStar = async (question: Question) => {
+    await questionService.updateQuestion(question.id, { starred: !question.starred });
+    setQuestions((items) => items.map((item) => (item.id === question.id ? { ...item, starred: !item.starred } : item)));
   };
 
   const toggleSelected = (questionId: string) => {
@@ -96,7 +105,7 @@ export function StarredPage() {
   };
 
   const redoSelected = () => {
-    const selected = questions.filter((question) => selectedIds.has(question.id));
+    const selected = wrongQuestions.filter((question) => selectedIds.has(question.id));
     const first = selected[0];
     if (!first) {
       return;
@@ -110,9 +119,9 @@ export function StarredPage() {
       <LoadingOverlay visible={loading} />
       <Group justify="space-between" mb="lg">
         <Box>
-          <Title order={2}>收藏的题</Title>
+          <Title order={2}>错题记录</Title>
           <Text size="sm" c="dimmed">
-            集中复习你在题库里标记过的重点题。
+            根据做题记录汇总，点击题目可以查看或编辑，点击重做会进入该题库刷题。
           </Text>
         </Box>
         <SegmentedControl
@@ -128,15 +137,17 @@ export function StarredPage() {
         </Button>
       </Group>
 
-      {questions.length === 0 ? (
-        <EmptyState title="还没有收藏" description="在题库详情页点击星标后，题目会出现在这里。" />
+      {wrongQuestions.length === 0 ? (
+        <EmptyState title="还没有错题" description="做题后，答错的题会出现在这里。" />
       ) : (
         <Stack gap="md">
-          {groupedQuestions.map(([groupName, groupQuestions]) => (
+          {grouped.map(([groupName, groupQuestions]) => (
             <Box key={groupName} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
               <Group justify="space-between" px="md" py="sm" style={{ borderBottom: '1px solid var(--border-light)' }}>
                 <Text fw={600}>{groupName}</Text>
-                <Badge variant="light">{groupQuestions.length} 题</Badge>
+                <Badge variant="light" color="red">
+                  {groupQuestions.length} 题
+                </Badge>
               </Group>
               {groupQuestions.map((question, index) => (
                 <Box
@@ -146,14 +157,11 @@ export function StarredPage() {
                   <Group justify="space-between" gap="md" wrap="nowrap">
                     <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
                       <Checkbox checked={selectedIds.has(question.id)} onChange={() => toggleSelected(question.id)} aria-label="选择题目" />
-                      <Badge size="xs" color="slate" variant="outline">
-                        {typeLabel(question.type)}
-                      </Badge>
                       <Box style={{ minWidth: 0 }}>
                         <Text
                           size="sm"
                           lineClamp={1}
-                          style={{ maxWidth: 720, cursor: 'pointer' }}
+                          style={{ maxWidth: 760, cursor: 'pointer' }}
                           onClick={() => navigate(`/bank/${question.bankId}/editor/${question.id}`)}
                         >
                           {extractText(question.body)}
@@ -163,11 +171,16 @@ export function StarredPage() {
                         </Text>
                       </Box>
                     </Group>
-                    <Tooltip label="取消收藏">
-                      <ActionIcon variant="subtle" color="yellow" aria-label="取消收藏" onClick={() => void handleUnstar(question)}>
-                        <IconStarFilled size={17} />
-                      </ActionIcon>
-                    </Tooltip>
+                    <Group gap={4} wrap="nowrap">
+                      <Button size="xs" variant="light" leftSection={<IconPlayerPlay size={14} />} onClick={() => navigate(`/bank/${question.bankId}/quiz`)}>
+                        重做
+                      </Button>
+                      <Tooltip label={question.starred ? '取消收藏' : '收藏'}>
+                        <ActionIcon variant="subtle" color="yellow" aria-label={question.starred ? '取消收藏' : '收藏'} onClick={() => void toggleStar(question)}>
+                          {question.starred ? <IconStarFilled size={17} /> : <IconStar size={17} />}
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
                   </Group>
                 </Box>
               ))}
