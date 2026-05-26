@@ -3,7 +3,7 @@ import { questionService } from '../services/questionService';
 import type { Question } from '../shared/types';
 
 type CreateInput = Omit<Question, 'id' | 'createdAt' | 'order'>;
-type UpdateInput = Partial<Pick<Question, 'type' | 'body' | 'options' | 'answer' | 'explanation' | 'tags'>>;
+type UpdateInput = Partial<Pick<Question, 'type' | 'body' | 'options' | 'answer' | 'explanation' | 'tags' | 'starred'>>;
 
 interface QuestionState {
   questions: Question[];

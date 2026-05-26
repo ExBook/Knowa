@@ -38,16 +38,26 @@ export function QuestionEditorPage() {
 
   useEffect(() => {
     if (existing) {
-      setType(existing.type);
-      setBody(existing.body);
-      setOptions(existing.options.length > 0 ? existing.options : [
-        { index: 0, content: textDoc('正确') },
-        { index: 1, content: textDoc('错误') },
-      ]);
-      setAnswer(existing.answer);
-      setExplanation(existing.explanation);
-      setTags(existing.tags);
+      let cancelled = false;
+      queueMicrotask(() => {
+        if (cancelled) {
+          return;
+        }
+        setType(existing.type);
+        setBody(existing.body);
+        setOptions(existing.options.length > 0 ? existing.options : [
+          { index: 0, content: textDoc('正确') },
+          { index: 1, content: textDoc('错误') },
+        ]);
+        setAnswer(existing.answer);
+        setExplanation(existing.explanation);
+        setTags(existing.tags);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
+    return undefined;
   }, [existing]);
 
   const addOption = () => {

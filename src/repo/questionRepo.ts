@@ -3,7 +3,7 @@ import { db } from './db';
 import type { Question } from '../shared/types';
 
 type CreateInput = Omit<Question, 'id' | 'createdAt' | 'order'>;
-type UpdateInput = Partial<Pick<Question, 'type' | 'body' | 'options' | 'answer' | 'explanation' | 'tags'>>;
+type UpdateInput = Partial<Pick<Question, 'type' | 'body' | 'options' | 'answer' | 'explanation' | 'tags' | 'starred'>>;
 
 async function updateQuestionCount(bankId: string, delta: number): Promise<void> {
   const bank = await db.banks.get(bankId);
@@ -69,6 +69,11 @@ export const questionRepo = {
 
   async findByBankId(bankId: string): Promise<Question[]> {
     return db.questions.where('bankId').equals(bankId).sortBy('order');
+  },
+
+  async findStarred(): Promise<Question[]> {
+    const questions = await db.questions.toArray();
+    return questions.filter((question) => question.starred).sort((a, b) => b.createdAt - a.createdAt);
   },
 
   async update(id: string, input: UpdateInput): Promise<Question> {

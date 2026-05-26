@@ -112,6 +112,31 @@ a {
   text-decoration: none;
 }
 
+.math-inline {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 1px 5px;
+  margin: 0 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  color: var(--accent);
+  font-family: 'Noto Serif SC', 'Times New Roman', serif;
+  font-size: 0.95em;
+  line-height: 1.5;
+  vertical-align: baseline;
+}
+
+.mantine-RichTextEditor-content code,
+.mantine-RichTextEditor-root code {
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  color: var(--accent);
+  font-size: 0.9em;
+  padding: 1px 5px;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

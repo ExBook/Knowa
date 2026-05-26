@@ -1,6 +1,6 @@
 import { Badge, Box, Button, Group, Text } from '@mantine/core';
 import { IconCheck, IconX } from '@tabler/icons-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { Question } from '../../shared/types';
 import { useNoteStore } from '../../stores/noteStore';
 import { RichTextEditor } from './RichTextEditor';
@@ -17,7 +17,8 @@ interface QuizQuestionProps {
 type RichNode = {
   type?: string;
   text?: string;
-  attrs?: { src?: string; alt?: string; language?: string };
+  attrs?: { src?: string; alt?: string; language?: string; latex?: string };
+  marks?: Array<{ type?: string }>;
   content?: RichNode[];
 };
 
@@ -31,8 +32,24 @@ function typeLabel(type: Question['type']): string {
   return '单选题';
 }
 
-function renderInline(nodes: RichNode[] | undefined): string {
-  return nodes?.map((node) => node.text ?? '').join('') ?? '';
+function renderInline(nodes: RichNode[] | undefined): ReactNode {
+  return (
+    nodes?.map((node, index) => {
+      if (node.type === 'mathInline') {
+        return (
+          <span key={index} className="math-inline">
+            ${node.attrs?.latex ?? ''}$
+          </span>
+        );
+      }
+
+      if (node.marks?.some((mark) => mark.type === 'code')) {
+        return <code key={index}>{node.text ?? ''}</code>;
+      }
+
+      return node.text ?? '';
+    }) ?? ''
+  );
 }
 
 function renderTipTapContent(doc: unknown): ReactNode {
@@ -87,12 +104,6 @@ function NotePanel({ questionId, bankId }: { questionId: string; bankId: string 
   const [content, setContent] = useState<object>(existing?.content ?? emptyDoc());
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    if (existing) {
-      setContent(existing.content);
-    }
-  }, [existing]);
-
   const handleSave = async () => {
     await saveNote(questionId, bankId, content);
     setSaved(true);
@@ -146,7 +157,7 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, m
   };
 
   return (
-    <Box>
+    <Box style={{ textAlign: 'left' }}>
       <Group gap="xs" mb="md">
         <Badge variant="light" size="sm">
           {typeLabel(question.type)}
@@ -161,7 +172,7 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, m
         ))}
       </Group>
 
-      <Box mb="lg" style={{ fontSize: '1.05rem', lineHeight: 1.8 }}>
+      <Box mb="lg" style={{ fontSize: '1.05rem', lineHeight: 1.8, textAlign: 'left' }}>
         {renderTipTapContent(question.body)}
       </Box>
 
@@ -197,9 +208,14 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, m
                 size="lg"
                 style={{
                   justifyContent: 'flex-start',
+                  textAlign: 'left',
                   marginBottom: 8,
                   height: 'auto',
                   padding: '12px 16px',
+                }}
+                styles={{
+                  inner: { justifyContent: 'flex-start', width: '100%' },
+                  label: { width: '100%', justifyContent: 'flex-start', textAlign: 'left', whiteSpace: 'normal' },
                 }}
                 onClick={() => toggleOption(index)}
                 disabled={readOnly}

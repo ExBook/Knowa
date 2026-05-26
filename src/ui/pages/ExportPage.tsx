@@ -24,7 +24,8 @@ import { useNoteStore } from '../../stores/noteStore';
 import { useQuestionStore } from '../../stores/questionStore';
 
 function extractPlainText(doc: unknown): string {
-  const root = doc as { content?: Array<{ type?: string; attrs?: { alt?: string }; content?: Array<{ text?: string }> }> };
+  type RichNode = { type?: string; text?: string; attrs?: { alt?: string; latex?: string }; content?: RichNode[] };
+  const root = doc as { content?: RichNode[] };
   if (!root?.content) {
     return '(无内容)';
   }
@@ -32,7 +33,7 @@ function extractPlainText(doc: unknown): string {
   const text = root.content
     .map((node) => {
       if (node.type === 'paragraph') {
-        return node.content?.map((child) => child.text ?? '').join('') ?? '';
+        return node.content?.map((child) => (child.type === 'mathInline' ? `$${child.attrs?.latex ?? ''}$` : child.text ?? '')).join('') ?? '';
       }
       if (node.type === 'codeBlock') {
         return '[代码块]';
@@ -65,7 +66,7 @@ export function ExportPage() {
   const { banks, loadBanks } = useBankStore();
   const { loadNotes, getNote } = useNoteStore();
   const bank = banks.find((item) => item.id === id);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null);
   const [includeAnswers, setIncludeAnswers] = useState(true);
   const [includeExplanations, setIncludeExplanations] = useState(true);
   const [includeNotes, setIncludeNotes] = useState(true);
@@ -84,19 +85,19 @@ export function ExportPage() {
     }
   }, [id, loadNotes, loadQuestions]);
 
-  useEffect(() => {
-    setSelectedIds(new Set(questions.map((question) => question.id)));
-  }, [questions]);
-
-  const selectedQuestions = useMemo(() => questions.filter((question) => selectedIds.has(question.id)), [questions, selectedIds]);
+  const effectiveSelectedIds = useMemo(() => selectedIds ?? new Set(questions.map((question) => question.id)), [questions, selectedIds]);
+  const selectedQuestions = useMemo(() => questions.filter((question) => effectiveSelectedIds.has(question.id)), [questions, effectiveSelectedIds]);
 
   const toggleSelectAll = () => {
-    setSelectedIds((current) => (current.size === questions.length ? new Set() : new Set(questions.map((question) => question.id))));
+    setSelectedIds((current) => {
+      const active = current ?? new Set(questions.map((question) => question.id));
+      return active.size === questions.length ? new Set() : new Set(questions.map((question) => question.id));
+    });
   };
 
   const toggleQuestion = (questionId: string) => {
     setSelectedIds((current) => {
-      const next = new Set(current);
+      const next = new Set(current ?? questions.map((question) => question.id));
       if (next.has(questionId)) {
         next.delete(questionId);
       } else {
@@ -155,7 +156,7 @@ export function ExportPage() {
               </Text>
             </Box>
           </Group>
-          <Button leftSection={<IconDownload size={16} />} onClick={() => void handleExport()} loading={exporting} disabled={selectedIds.size === 0}>
+          <Button leftSection={<IconDownload size={16} />} onClick={() => void handleExport()} loading={exporting} disabled={effectiveSelectedIds.size === 0}>
             导出 PDF
           </Button>
         </Group>
@@ -170,8 +171,8 @@ export function ExportPage() {
               </Text>
               <Checkbox
                 label={`全选 (${questions.length} 题)`}
-                checked={questions.length > 0 && selectedIds.size === questions.length}
-                indeterminate={selectedIds.size > 0 && selectedIds.size < questions.length}
+                checked={questions.length > 0 && effectiveSelectedIds.size === questions.length}
+                indeterminate={effectiveSelectedIds.size > 0 && effectiveSelectedIds.size < questions.length}
                 onChange={toggleSelectAll}
                 mb="sm"
               />
@@ -179,7 +180,7 @@ export function ExportPage() {
                 <Accordion.Item value="list">
                   <Accordion.Control>
                     <Text size="sm">
-                      已选 {selectedIds.size}/{questions.length} 题
+                      已选 {effectiveSelectedIds.size}/{questions.length} 题
                     </Text>
                   </Accordion.Control>
                   <Accordion.Panel>
@@ -188,7 +189,7 @@ export function ExportPage() {
                         <Checkbox
                           key={question.id}
                           label={`${index + 1}. [${typeLabel(question.type)}] ${extractPlainText(question.body)}`}
-                          checked={selectedIds.has(question.id)}
+                          checked={effectiveSelectedIds.has(question.id)}
                           onChange={() => toggleQuestion(question.id)}
                           mb={6}
                         />
@@ -258,7 +259,7 @@ export function ExportPage() {
                 {bank?.name ?? '题库'}
               </Title>
               <Text size="xs" c="dimmed" mb="md">
-                已选 {selectedIds.size} 题
+                已选 {effectiveSelectedIds.size} 题
               </Text>
               {selectedQuestions.slice(0, 5).map((question, index) => (
                 <Box key={question.id} mb="md" pb="md" style={{ borderBottom: '1px solid #e5e0d5' }}>

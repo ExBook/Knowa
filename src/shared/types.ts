@@ -24,6 +24,7 @@ export interface Question {
   answer: number[];
   explanation: object;
   tags: string[];
+  starred?: boolean;
   order: number;
   createdAt: number;
 }

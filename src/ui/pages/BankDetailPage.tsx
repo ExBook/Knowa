@@ -1,11 +1,16 @@
 import {
   ActionIcon,
+  Alert,
   Badge,
   Box,
   Button,
+  Code,
   Group,
   LoadingOverlay,
   Modal,
+  ScrollArea,
+  SimpleGrid,
+  Stack,
   Tabs,
   Text,
   Textarea,
@@ -22,6 +27,8 @@ import {
   IconFileTypePdf,
   IconPlayerPlay,
   IconPlus,
+  IconStar,
+  IconStarFilled,
   IconTrash,
 } from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -35,6 +42,22 @@ import type { Question } from '../../shared/types';
 import { EmptyState } from '../components/EmptyState';
 import { ImportDropZone } from '../components/ImportDropZone';
 
+const markdownExample = `# Q1 [单选题] [标签: 数学, 基础]
+当 \`x\` 满足 $x^2=4$ 时，下列说法正确的是？
+
+- A. $x=2$ 是一个解
+- B. x 只能等于 3
+
+> 答案: A
+> 解析: 代入可得 2^2=4。
+
+---
+
+# Q2 [判断题]
+Markdown 支持行内代码和数学公式。
+
+> 答案: T`;
+
 function extractText(body: object): string {
   const texts: string[] = [];
 
@@ -43,8 +66,10 @@ function extractText(body: object): string {
       return;
     }
 
-    const node = value as { type?: string; text?: string; attrs?: { alt?: string }; content?: unknown[] };
-    if (node.text) {
+    const node = value as { type?: string; text?: string; attrs?: { alt?: string; latex?: string }; content?: unknown[] };
+    if (node.type === 'mathInline') {
+      texts.push(`$${node.attrs?.latex ?? ''}$`);
+    } else if (node.text) {
       texts.push(node.text);
     }
     if (node.type === 'image') {
@@ -57,6 +82,33 @@ function extractText(body: object): string {
   return texts.join(' ').trim() || '(富文本内容)';
 }
 
+function validateMarkdownQuestions(questions: Array<ReturnType<typeof parseMarkdown>[number]>): string[] {
+  const errors: string[] = [];
+
+  if (questions.length === 0) {
+    errors.push('还没有解析到题目。每道题需要以标题开头，例如 # Q1 [单选题]。');
+    return errors;
+  }
+
+  questions.forEach((question, index) => {
+    const label = `第 ${index + 1} 题`;
+    if (!extractText(question.body).replace('(富文本内容)', '').trim()) {
+      errors.push(`${label}: 题干不能为空`);
+    }
+    if (question.type !== 'truefalse' && question.options.length < 2) {
+      errors.push(`${label}: 选择题至少需要 2 个选项，格式为 - A. 选项内容`);
+    }
+    if (question.answer.length === 0) {
+      errors.push(`${label}: 缺少答案，格式为 > 答案: A`);
+    }
+    if (question.type !== 'truefalse' && question.answer.some((answer) => answer >= question.options.length)) {
+      errors.push(`${label}: 答案超出了选项范围`);
+    }
+  });
+
+  return errors;
+}
+
 function typeLabel(type: Question['type']): string {
   if (type === 'multiple') {
     return '多选';
@@ -67,17 +119,29 @@ function typeLabel(type: Question['type']): string {
   return '单选';
 }
 
+function previewAnswer(question: ReturnType<typeof parseMarkdown>[number]): string {
+  if (question.answer.length === 0) {
+    return '未识别';
+  }
+  if (question.type === 'truefalse') {
+    return question.answer[0] === 0 ? 'T / 正确' : 'F / 错误';
+  }
+  return question.answer.map((answer) => String.fromCharCode(65 + answer)).join(', ');
+}
+
 export function BankDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { banks, loadBanks } = useBankStore();
-  const { questions, loading, loadQuestions, bulkCreateQuestions, deleteQuestion } = useQuestionStore();
+  const { questions, loading, loadQuestions, bulkCreateQuestions, updateQuestion, deleteQuestion } = useQuestionStore();
   const [markdownText, setMarkdownText] = useState('');
   const [mdModalOpened, { open: openMdModal, close: closeMdModal }] = useDisclosure(false);
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const bank = banks.find((item) => item.id === id);
-  const parsedCount = useMemo(() => parseMarkdown(markdownText).length, [markdownText]);
+  const parsedQuestions = useMemo(() => parseMarkdown(markdownText), [markdownText]);
+  const markdownErrors = useMemo(() => validateMarkdownQuestions(parsedQuestions), [parsedQuestions]);
+  const canImportMarkdown = parsedQuestions.length > 0 && markdownErrors.length === 0;
 
   useEffect(() => {
     void loadBanks();
@@ -132,18 +196,21 @@ export function BankDetailPage() {
 
     setImporting(true);
     try {
-      const parsed = parseMarkdown(markdownText);
-      await bulkCreateQuestions(parsed.map((question) => ({ ...question, bankId: id })));
+      await bulkCreateQuestions(parsedQuestions.map((question) => ({ ...question, bankId: id })));
       closeMdModal();
       setMarkdownText('');
       await loadQuestions(id);
       await loadBanks();
-      notifications.show({ color: 'green', title: '导入成功', message: `已导入 ${parsed.length} 道题` });
+      notifications.show({ color: 'green', title: '导入成功', message: `已导入 ${parsedQuestions.length} 道题` });
     } catch (error) {
       notifications.show({ color: 'red', title: '导入失败', message: (error as Error).message });
     } finally {
       setImporting(false);
     }
+  };
+
+  const handleCloseMarkdownModal = () => {
+    closeMdModal();
   };
 
   const handleExport = async (includeRecords: boolean) => {
@@ -172,6 +239,23 @@ export function BankDetailPage() {
       notifications.show({ color: 'green', title: '已删除', message: '题目已删除' });
     } catch (error) {
       notifications.show({ color: 'red', title: '删除失败', message: (error as Error).message });
+    }
+  };
+
+  const handleToggleStar = async (question: Question) => {
+    if (!id) {
+      return;
+    }
+
+    try {
+      await updateQuestion(question.id, { starred: !question.starred });
+      notifications.show({
+        color: 'green',
+        title: question.starred ? '已取消收藏' : '已收藏',
+        message: question.starred ? '题目已从收藏中移除' : '题目已加入收藏列表',
+      });
+    } catch (error) {
+      notifications.show({ color: 'red', title: '操作失败', message: (error as Error).message });
     }
   };
 
@@ -214,28 +298,6 @@ export function BankDetailPage() {
             </Box>
           </Group>
           <Group gap="sm" justify="flex-end">
-            <Button variant="default" leftSection={<IconFileImport size={16} />} component="label" loading={importing}>
-              导入
-              <input
-                type="file"
-                accept=".exbank,.md"
-                multiple
-                hidden
-                onChange={(event) => {
-                  const files = Array.from(event.currentTarget.files ?? []);
-                  event.currentTarget.value = '';
-                  if (files.length) {
-                    void handleFiles(files);
-                  }
-                }}
-              />
-            </Button>
-            <Button variant="default" leftSection={<IconDownload size={16} />} loading={exporting} onClick={() => void handleExport(false)}>
-              导出共享
-            </Button>
-            <Button variant="default" leftSection={<IconDownload size={16} />} loading={exporting} onClick={() => void handleExport(true)}>
-              导出完整
-            </Button>
             <Button variant="default" leftSection={<IconChartBar size={16} />} onClick={() => navigate(`/bank/${id}/stats`)}>
               数据看板
             </Button>
@@ -257,7 +319,7 @@ export function BankDetailPage() {
         <Tabs defaultValue="list">
           <Tabs.List>
             <Tabs.Tab value="list">题目列表</Tabs.Tab>
-            <Tabs.Tab value="import">导入</Tabs.Tab>
+            <Tabs.Tab value="import">导入 / 导出</Tabs.Tab>
           </Tabs.List>
 
           <Tabs.Panel value="list" pt="lg">
@@ -265,13 +327,10 @@ export function BankDetailPage() {
               <Button leftSection={<IconPlus size={16} />} onClick={() => navigate(`/bank/${id}/editor/new`)}>
                 添加题目
               </Button>
-              <Button variant="default" leftSection={<IconFileImport size={16} />} onClick={openMdModal}>
-                Markdown 批量导入
-              </Button>
             </Group>
 
             {questions.length === 0 ? (
-              <EmptyState title="还没有题目" description="添加第一道题目，或从 Markdown / .exbank 导入">
+              <EmptyState title="还没有题目" description="添加第一道题目，或在导入 / 导出页签导入 Markdown / .exbank 文件">
                 <Button leftSection={<IconPlus size={16} />} onClick={() => navigate(`/bank/${id}/editor/new`)}>
                   添加题目
                 </Button>
@@ -293,6 +352,15 @@ export function BankDetailPage() {
                         </Badge>
                       </Group>
                       <Group gap={4} wrap="nowrap">
+                        <ActionIcon
+                          variant={question.starred ? 'light' : 'subtle'}
+                          size="sm"
+                          color="yellow"
+                          aria-label={question.starred ? '取消收藏' : '收藏题目'}
+                          onClick={() => void handleToggleStar(question)}
+                        >
+                          {question.starred ? <IconStarFilled size={15} /> : <IconStar size={15} />}
+                        </ActionIcon>
                         <ActionIcon variant="subtle" size="sm" aria-label="编辑题目" onClick={() => navigate(`/bank/${id}/editor/${question.id}`)}>
                           <IconEdit size={15} />
                         </ActionIcon>
@@ -314,34 +382,115 @@ export function BankDetailPage() {
           </Tabs.Panel>
 
           <Tabs.Panel value="import" pt="lg">
-            <ImportDropZone onFiles={(files) => void handleFiles(files)} accept=".exbank,.md">
-              <Group justify="center" gap="xs">
-                <IconFileImport size={20} />
-                <Text size="sm" c="dimmed">
-                  拖入 .exbank 或 .md 文件
-                </Text>
-              </Group>
-            </ImportDropZone>
+            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
+              <Stack gap="md">
+                <Alert color="blue" variant="light" title="导入说明">
+                  <Text size="sm">
+                    `.exbank` 会合并到当前题库；Markdown 会先进入预览和校验，确认无误后再批量创建题目。
+                  </Text>
+                </Alert>
+                <ImportDropZone onFiles={(files) => void handleFiles(files)} accept=".exbank,.md">
+                  <Group justify="center" gap="xs">
+                    <IconFileImport size={20} />
+                    <Text size="sm" c="dimmed">
+                      拖入 .exbank 或 .md 文件
+                    </Text>
+                  </Group>
+                </ImportDropZone>
+                <Button variant="default" leftSection={<IconFileImport size={16} />} onClick={openMdModal}>
+                  打开 Markdown 导入器
+                </Button>
+              </Stack>
+
+              <Stack gap="md">
+                <Alert color="gray" variant="light" title="导出说明">
+                  <Text size="sm">
+                    共享包只包含题库和题目，适合发给别人练习；完整包会额外包含做题记录和笔记，适合备份。
+                  </Text>
+                </Alert>
+                <Button variant="default" leftSection={<IconDownload size={16} />} loading={exporting} onClick={() => void handleExport(false)}>
+                  导出共享包 .exbank
+                </Button>
+                <Button variant="default" leftSection={<IconDownload size={16} />} loading={exporting} onClick={() => void handleExport(true)}>
+                  导出完整备份 .exbank
+                </Button>
+              </Stack>
+            </SimpleGrid>
           </Tabs.Panel>
         </Tabs>
       </Box>
 
-      <Modal opened={mdModalOpened} onClose={closeMdModal} title="Markdown 批量导入" size="lg">
-        <Text size="sm" c="dimmed" mb="md">
-          已解析 {parsedCount} 道题目
-        </Text>
-        <Textarea
-          value={markdownText}
-          onChange={(event) => setMarkdownText(event.currentTarget.value)}
-          minRows={14}
-          autosize
-          styles={{ input: { fontFamily: 'var(--mantine-font-family-monospace)', fontSize: 13 } }}
-        />
+      <Modal opened={mdModalOpened} onClose={handleCloseMarkdownModal} title="Markdown 批量导入" size="xl">
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
+          <Stack gap="sm">
+            <Group justify="space-between">
+              <Text size="sm" fw={500}>
+                Markdown 内容
+              </Text>
+              <Button size="xs" variant="subtle" onClick={() => setMarkdownText(markdownExample)}>
+                填入示例
+              </Button>
+            </Group>
+            <Textarea
+              value={markdownText}
+              onChange={(event) => setMarkdownText(event.currentTarget.value)}
+              minRows={18}
+              autosize
+              placeholder={markdownExample}
+              styles={{ input: { fontFamily: 'var(--mantine-font-family-monospace)', fontSize: 13 } }}
+            />
+            <Text size="xs" c="dimmed">
+              格式：标题行写题型和标签；选项使用 `- A.`；答案和解析使用引用块；多题之间用 `---` 分隔。
+            </Text>
+          </Stack>
+
+          <Stack gap="sm">
+            <Text size="sm" fw={500}>
+              实时预览
+            </Text>
+            {markdownErrors.length > 0 ? (
+              <Alert color="red" variant="light" title="需要修正">
+                <Stack gap={4}>
+                  {markdownErrors.map((error) => (
+                    <Text key={error} size="sm">
+                      {error}
+                    </Text>
+                  ))}
+                </Stack>
+              </Alert>
+            ) : (
+              <Alert color="green" variant="light" title="格式可导入">
+                <Text size="sm">已解析 {parsedQuestions.length} 道题目。</Text>
+              </Alert>
+            )}
+            <Code block>{markdownExample}</Code>
+            <ScrollArea h={260} type="auto">
+              <Stack gap="xs">
+                {parsedQuestions.map((question, index) => (
+                  <Box key={index} p="sm" style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)' }}>
+                    <Group gap="xs" mb={4}>
+                      <Badge size="xs">{typeLabel(question.type)}</Badge>
+                      <Text size="xs" c="dimmed">
+                        {question.type === 'truefalse' ? '判断题' : `${question.options.length} 个选项`}
+                      </Text>
+                    </Group>
+                    <Text size="sm" lineClamp={2}>
+                      {extractText(question.body)}
+                    </Text>
+                    <Text size="xs" c="dimmed" mt={4}>
+                      答案: {previewAnswer(question)}
+                    </Text>
+                  </Box>
+                ))}
+              </Stack>
+            </ScrollArea>
+          </Stack>
+        </SimpleGrid>
         <Group justify="flex-end" mt="md">
-          <Button variant="default" onClick={closeMdModal}>
+          <Button variant="default" onClick={handleCloseMarkdownModal}>
             取消
           </Button>
-          <Button onClick={() => void handleMarkdownImport()} loading={importing} disabled={parsedCount === 0}>
+          <Button onClick={() => void handleMarkdownImport()} loading={importing} disabled={!canImportMarkdown}>
             导入
           </Button>
         </Group>

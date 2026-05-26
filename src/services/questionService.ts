@@ -2,7 +2,7 @@ import { questionRepo } from '../repo/questionRepo';
 import type { Question } from '../shared/types';
 
 type CreateInput = Omit<Question, 'id' | 'createdAt' | 'order'>;
-type UpdateInput = Partial<Pick<Question, 'type' | 'body' | 'options' | 'answer' | 'explanation' | 'tags'>>;
+type UpdateInput = Partial<Pick<Question, 'type' | 'body' | 'options' | 'answer' | 'explanation' | 'tags' | 'starred'>>;
 
 function hasRichContent(value: unknown): boolean {
   if (!value || typeof value !== 'object') {
@@ -13,8 +13,11 @@ function hasRichContent(value: unknown): boolean {
     return value.some(hasRichContent);
   }
 
-  const node = value as { type?: string; text?: string; attrs?: { src?: unknown }; content?: unknown[] };
+  const node = value as { type?: string; text?: string; attrs?: { src?: unknown; latex?: unknown }; content?: unknown[] };
   if (typeof node.text === 'string' && node.text.trim()) {
+    return true;
+  }
+  if (node.type === 'mathInline' && typeof node.attrs?.latex === 'string' && node.attrs.latex.trim()) {
     return true;
   }
   if (node.type === 'image' && typeof node.attrs?.src === 'string' && node.attrs.src.trim()) {
@@ -57,7 +60,7 @@ export const questionService = {
         validateQuestion(input);
       } catch (error) {
         if (error instanceof Error) {
-          throw new Error(`题目 ${index + 1}: ${error.message}`);
+          throw new Error(`题目 ${index + 1}: ${error.message}`, { cause: error });
         }
         throw error;
       }
@@ -68,6 +71,10 @@ export const questionService = {
 
   async getQuestions(bankId: string): Promise<Question[]> {
     return questionRepo.findByBankId(bankId);
+  },
+
+  async getStarredQuestions(): Promise<Question[]> {
+    return questionRepo.findStarred();
   },
 
   async updateQuestion(id: string, input: UpdateInput): Promise<Question> {

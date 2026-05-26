@@ -2,6 +2,8 @@ import '@mantine/tiptap/styles.css';
 
 import { Box } from '@mantine/core';
 import { Link, RichTextEditor as MantineRichTextEditor } from '@mantine/tiptap';
+import { IconMathFunction } from '@tabler/icons-react';
+import { mergeAttributes, Node } from '@tiptap/core';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -16,6 +18,35 @@ import { common, createLowlight } from 'lowlight';
 import { useEffect } from 'react';
 
 const lowlight = createLowlight(common);
+
+const MathInline = Node.create({
+  name: 'mathInline',
+  group: 'inline',
+  inline: true,
+  atom: true,
+
+  addAttributes() {
+    return {
+      latex: {
+        default: '',
+        parseHTML: (element) => element.getAttribute('data-latex') ?? '',
+        renderHTML: (attributes) => ({ 'data-latex': attributes.latex }),
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'span[data-math-inline]' }];
+  },
+
+  renderHTML({ node, HTMLAttributes }) {
+    return [
+      'span',
+      mergeAttributes(HTMLAttributes, { 'data-math-inline': 'true', class: 'math-inline' }),
+      `$${node.attrs.latex ?? ''}$`,
+    ];
+  },
+});
 
 interface RichTextEditorProps {
   content: object;
@@ -42,6 +73,7 @@ export function RichTextEditor({
       TableCell,
       TableHeader,
       Link,
+      MathInline,
     ],
     content,
     onUpdate: ({ editor: currentEditor }) => {
@@ -60,6 +92,15 @@ export function RichTextEditor({
     }
   }, [content, editor]);
 
+  const insertMath = () => {
+    const latex = window.prompt('输入 LaTeX 公式，例如 x^2 + y^2 = z^2');
+    if (!latex?.trim()) {
+      return;
+    }
+
+    editor?.chain().focus().insertContent({ type: 'mathInline', attrs: { latex: latex.trim() } }).run();
+  };
+
   return (
     <Box style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
       <MantineRichTextEditor editor={editor}>
@@ -69,6 +110,7 @@ export function RichTextEditor({
             <MantineRichTextEditor.Italic />
             <MantineRichTextEditor.Underline />
             <MantineRichTextEditor.Strikethrough />
+            <MantineRichTextEditor.Code />
           </MantineRichTextEditor.ControlsGroup>
 
           <MantineRichTextEditor.ControlsGroup>
@@ -83,6 +125,9 @@ export function RichTextEditor({
             <MantineRichTextEditor.CodeBlock />
             <MantineRichTextEditor.BulletList />
             <MantineRichTextEditor.OrderedList />
+            <MantineRichTextEditor.Control aria-label="插入数学公式" title="插入数学公式" onClick={insertMath}>
+              <IconMathFunction size={16} />
+            </MantineRichTextEditor.Control>
           </MantineRichTextEditor.ControlsGroup>
 
           <MantineRichTextEditor.ControlsGroup>

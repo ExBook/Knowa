@@ -142,7 +142,7 @@ export function BankListPage() {
           </Box>
           <Group gap="sm">
             <Button variant="default" leftSection={<IconFileImport size={16} />} component="label" loading={importing}>
-              导入题库
+              导入 .exbank 新题库
               <input
                 type="file"
                 accept=".exbank"
@@ -169,7 +169,7 @@ export function BankListPage() {
                 新建题库
               </Button>
               <Button variant="default" leftSection={<IconFileImport size={16} />} component="label" loading={importing}>
-                导入题库
+                导入 .exbank 新题库
                 <input
                   type="file"
                   accept=".exbank"

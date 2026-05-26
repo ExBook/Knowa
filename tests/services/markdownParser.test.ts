@@ -130,4 +130,22 @@ What is 2 + 2?
     expect(result[0].answer).toEqual([0]);
     expect(JSON.stringify(result[0].explanation)).toContain('Basic arithmetic.');
   });
+
+  it('parses inline code and inline math', () => {
+    const md = `# Q1 [单选题]
+当 \`x\` 满足 $x^2=4$ 时，正确答案是？
+
+- A. $x=2$
+- B. x=3
+
+> 答案: A`;
+
+    const result = parseMarkdown(md);
+    const body = JSON.stringify(result[0].body);
+    const option = JSON.stringify(result[0].options[0].content);
+
+    expect(body).toContain('"type":"code"');
+    expect(body).toContain('"type":"mathInline"');
+    expect(option).toContain('"latex":"x=2"');
+  });
 });

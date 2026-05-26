@@ -1,4 +1,4 @@
-import { Box, Button, Group, Modal, Select, Stack, Text } from '@mantine/core';
+import { Box, Button, Group, Modal, SegmentedControl, Stack, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -72,25 +72,33 @@ export function QuizPage() {
     return (
       <Modal opened={showSetup} onClose={() => navigate(`/bank/${id}`)} title="开始做题" centered>
         <Stack gap="md">
-          <Select
-            label="模式"
+          <Text size="sm" fw={500}>
+            模式
+          </Text>
+          <SegmentedControl
+            fullWidth
             data={[
-              { value: 'practice', label: '练习模式 - 逐题提交，即时反馈' },
-              { value: 'exam', label: '考试模式 - 统一交卷' },
+              { value: 'practice', label: '练习模式' },
+              { value: 'exam', label: '考试模式' },
             ]}
             value={selectedMode}
-            onChange={(value) => setSelectedMode((value ?? 'practice') as QuizMode)}
-            allowDeselect={false}
+            onChange={(value) => setSelectedMode(value as QuizMode)}
           />
-          <Select
-            label="顺序"
+          <Text size="xs" c="dimmed" mt={-8}>
+            练习模式逐题反馈；考试模式统一交卷。
+          </Text>
+
+          <Text size="sm" fw={500}>
+            顺序
+          </Text>
+          <SegmentedControl
+            fullWidth
             data={[
               { value: 'sequential', label: '按题目顺序' },
               { value: 'shuffled', label: '随机打乱' },
             ]}
             value={selectedOrder}
-            onChange={(value) => setSelectedOrder((value ?? 'sequential') as OrderType)}
-            allowDeselect={false}
+            onChange={(value) => setSelectedOrder(value as OrderType)}
           />
           <Button onClick={() => void startQuiz()} fullWidth size="lg">
             开始

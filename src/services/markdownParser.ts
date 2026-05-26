@@ -14,9 +14,52 @@ type RichNode = {
   attrs?: Record<string, unknown>;
   content?: RichNode[];
   text?: string;
+  marks?: Array<{ type: string }>;
 };
 
 const emptyDoc = (): object => ({ type: 'doc', content: [{ type: 'paragraph', content: [] }] });
+
+function parseInlineContent(text: string): RichNode[] {
+  const nodes: RichNode[] = [];
+  let cursor = 0;
+
+  const pushText = (value: string, marks?: RichNode['marks']) => {
+    if (value) {
+      nodes.push({ type: 'text', text: value, ...(marks ? { marks } : {}) });
+    }
+  };
+
+  while (cursor < text.length) {
+    const markerIndex = text.slice(cursor).search(/[`$]/);
+    if (markerIndex === -1) {
+      pushText(text.slice(cursor));
+      break;
+    }
+
+    const absoluteIndex = cursor + markerIndex;
+    pushText(text.slice(cursor, absoluteIndex));
+
+    const marker = text[absoluteIndex];
+    const endIndex = text.indexOf(marker, absoluteIndex + 1);
+    if (endIndex === -1) {
+      pushText(text.slice(absoluteIndex));
+      break;
+    }
+
+    const value = text.slice(absoluteIndex + 1, endIndex).trim();
+    if (!value) {
+      pushText(text.slice(absoluteIndex, endIndex + 1));
+    } else if (marker === '`') {
+      pushText(value, [{ type: 'code' }]);
+    } else {
+      nodes.push({ type: 'mathInline', attrs: { latex: value } });
+    }
+
+    cursor = endIndex + 1;
+  }
+
+  return nodes;
+}
 
 function parseBody(content: string): object {
   const nodes: RichNode[] = [];
@@ -61,7 +104,7 @@ function parseBody(content: string): object {
     if (line.trim()) {
       nodes.push({
         type: 'paragraph',
-        content: [{ type: 'text', text: line.trim() }],
+        content: parseInlineContent(line.trim()),
       });
     }
 

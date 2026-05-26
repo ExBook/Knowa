@@ -28,6 +28,8 @@ const pdf = pdfMake as PdfMakeApi;
 pdf.addVirtualFileSystem(pdfFonts as Record<string, string>);
 
 let cjkFontReady = false;
+const cjkFontFile = 'NotoSansCJKsc-Regular.otf';
+const cjkFontFamily = 'NotoSansCJKsc';
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
@@ -44,19 +46,19 @@ export async function initCJKFont(): Promise<void> {
   }
 
   try {
-    const response = await fetch('https://cdn.jsdelivr.net/npm/@canvas-fonts/notosanssc@1.0.0/files/notosanssc-regular.otf');
+    const response = await fetch(`${import.meta.env.BASE_URL}fonts/${cjkFontFile}`);
     if (!response.ok) {
       return;
     }
 
     const buffer = await response.arrayBuffer();
-    pdf.addVirtualFileSystem({ 'NotoSansSC-Regular.otf': arrayBufferToBase64(buffer) });
+    pdf.addVirtualFileSystem({ [cjkFontFile]: arrayBufferToBase64(buffer) });
     pdf.addFonts({
-      NotoSansSC: {
-        normal: 'NotoSansSC-Regular.otf',
-        bold: 'NotoSansSC-Regular.otf',
-        italics: 'NotoSansSC-Regular.otf',
-        bolditalics: 'NotoSansSC-Regular.otf',
+      [cjkFontFamily]: {
+        normal: cjkFontFile,
+        bold: cjkFontFile,
+        italics: cjkFontFile,
+        bolditalics: cjkFontFile,
       },
     });
     cjkFontReady = true;
@@ -65,8 +67,28 @@ export async function initCJKFont(): Promise<void> {
   }
 }
 
+type RichNode = {
+  type?: string;
+  text?: string;
+  attrs?: { alt?: string; src?: string; latex?: string };
+  content?: RichNode[];
+};
+
+function inlineToText(nodes: RichNode[] | undefined): string {
+  return (
+    nodes
+      ?.map((node) => {
+        if (node.type === 'mathInline') {
+          return `$${node.attrs?.latex ?? ''}$`;
+        }
+        return node.text ?? '';
+      })
+      .join('') ?? ''
+  );
+}
+
 function tipTapToText(doc: unknown): string {
-  const root = doc as { content?: Array<{ type?: string; text?: string; attrs?: { alt?: string; src?: string }; content?: Array<{ text?: string }> }> };
+  const root = doc as { content?: RichNode[] };
   if (!root?.content) {
     return '';
   }
@@ -74,10 +96,10 @@ function tipTapToText(doc: unknown): string {
   return root.content
     .map((node) => {
       if (node.type === 'paragraph') {
-        return node.content?.map((child) => child.text ?? '').join('') ?? '';
+        return inlineToText(node.content);
       }
       if (node.type === 'codeBlock') {
-        return node.content?.[0]?.text ?? '';
+        return inlineToText(node.content);
       }
       if (node.type === 'image') {
         return `[图片: ${node.attrs?.alt || node.attrs?.src || ''}]`;
@@ -203,14 +225,14 @@ export async function generatePrecisePDF(questions: QuestionData[], options: Exp
     }
   });
 
-  const font = cjkFontReady ? 'NotoSansSC' : 'Roboto';
+  const font = cjkFontReady ? cjkFontFamily : 'Roboto';
   return pdf.createPdf({
     pageSize: 'A4',
-    pageMargins: [40, 40, 40, 40],
+    pageMargins: [46, 48, 46, 48],
     content,
     styles: {
-      title: { fontSize: 18, bold: true },
-      subtitle: { fontSize: 10, color: '#7a7568' },
+      title: { fontSize: 22, bold: true, alignment: 'center', lineHeight: 1.25 },
+      subtitle: { fontSize: 10, color: '#7a7568', alignment: 'center' },
       statText: { fontSize: 10, alignment: 'center' },
       statsBox: { fillColor: '#f3efe8', fillOpacity: 1 },
     },
