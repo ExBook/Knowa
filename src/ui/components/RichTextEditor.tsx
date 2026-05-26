@@ -171,7 +171,7 @@ export function RichTextEditor({
   const [mathMode, setMathMode] = useState<'inline' | 'block'>('inline');
   const [imageOpened, setImageOpened] = useState(false);
   const [imageSrc, setImageSrc] = useState('');
-  const [imageWidth, setImageWidth] = useState(80);
+  const [imageWidth, setImageWidth] = useState(50);
   const [imageAlign, setImageAlign] = useState<'left' | 'center' | 'right'>('center');
   const editor = useEditor({
     extensions: [
@@ -242,7 +242,7 @@ export function RichTextEditor({
       .insertContent({ type: 'image', attrs: { src: imageSrc, width: imageWidth, align: imageAlign } })
       .run();
     setImageSrc('');
-    setImageWidth(80);
+    setImageWidth(50);
     setImageAlign('center');
     setImageOpened(false);
   };
@@ -335,6 +335,25 @@ export function RichTextEditor({
                     缩放比例
                   </Text>
                   <Slider value={imageWidth} onChange={setImageWidth} min={20} max={100} step={5} label={(value) => `${value}%`} />
+                  {imageSrc && (
+                    <Box mt="sm" p="xs" style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-muted)' }}>
+                      <Text size="xs" c="dimmed" mb={4}>
+                        预览
+                      </Text>
+                      <img
+                        src={imageSrc}
+                        alt=""
+                        style={{
+                          display: 'block',
+                          width: `${imageWidth}%`,
+                          maxWidth: '100%',
+                          height: 'auto',
+                          margin: imageAlign === 'left' ? '0 auto 0 0' : imageAlign === 'right' ? '0 0 0 auto' : '0 auto',
+                          borderRadius: 'var(--radius-sm)',
+                        }}
+                      />
+                    </Box>
+                  )}
                   <SegmentedControl
                     fullWidth
                     size="xs"

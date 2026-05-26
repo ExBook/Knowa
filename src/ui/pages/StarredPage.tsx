@@ -1,12 +1,12 @@
-import { ActionIcon, Badge, Box, Button, Checkbox, Group, LoadingOverlay, SegmentedControl, Stack, Text, Title, Tooltip } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { IconPlayerPlay, IconStarFilled } from '@tabler/icons-react';
+import { ActionIcon, Badge, Box, Button, Checkbox, Group, LoadingOverlay, Modal, SegmentedControl, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
+import { IconEdit, IconPlayerPlay, IconSearch, IconStarFilled } from '@tabler/icons-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { questionService } from '../../services/questionService';
 import type { Question } from '../../shared/types';
 import { useBankStore } from '../../stores/bankStore';
 import { EmptyState } from '../components/EmptyState';
+import { QuizQuestion } from '../components/QuizQuestion';
 
 function extractText(body: object): string {
   const texts: string[] = [];
@@ -48,6 +48,8 @@ export function StarredPage() {
   const [loading, setLoading] = useState(true);
   const [groupMode, setGroupMode] = useState<'bank' | 'chapter'>('bank');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [searchText, setSearchText] = useState('');
+  const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
 
   useEffect(() => {
     const loadStarred = async () => {
@@ -66,20 +68,31 @@ export function StarredPage() {
   const bankName = useCallback((bankId: string) => banks.find((bank) => bank.id === bankId)?.name ?? '未知题库', [banks]);
   const groupedQuestions = useMemo(() => {
     const groups = new Map<string, Question[]>();
-    questions.forEach((question) => {
+    const keyword = searchText.trim().toLowerCase();
+    questions
+      .filter((question) => {
+        if (!keyword) {
+          return true;
+        }
+        return [extractText(question.body), question.tags.join(' '), question.chapter, question.section, question.knowledgePoint, bankName(question.bankId)]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(keyword);
+      })
+      .forEach((question) => {
       const key = groupMode === 'bank' ? bankName(question.bankId) : question.chapter || '未设置章节';
       groups.set(key, [...(groups.get(key) ?? []), question]);
     });
     return Array.from(groups.entries());
-  }, [bankName, groupMode, questions]);
+  }, [bankName, groupMode, questions, searchText]);
 
   const handleUnstar = async (question: Question) => {
     try {
       await questionService.updateQuestion(question.id, { starred: false });
       setQuestions((items) => items.filter((item) => item.id !== question.id));
-      notifications.show({ color: 'green', title: '已取消收藏', message: '题目已从收藏列表移除' });
-    } catch (error) {
-      notifications.show({ color: 'red', title: '操作失败', message: (error as Error).message });
+    } catch {
+      // The star icon state is the primary feedback here; avoid noisy transient messages.
     }
   };
 
@@ -105,6 +118,25 @@ export function StarredPage() {
     navigate(`/bank/${first.bankId}/quiz`);
   };
 
+  const toggleGroup = (groupQuestions: Question[]) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      const allSelected = groupQuestions.every((question) => next.has(question.id));
+      groupQuestions.forEach((question) => {
+        if (allSelected) {
+          next.delete(question.id);
+        } else {
+          next.add(question.id);
+        }
+      });
+      return next;
+    });
+  };
+
+  const editQuestion = (question: Question) => {
+    navigate(`/bank/${question.bankId}/editor/${question.id}?returnTo=${encodeURIComponent('/starred')}`);
+  };
+
   return (
     <Box p="xl" pos="relative">
       <LoadingOverlay visible={loading} />
@@ -127,6 +159,13 @@ export function StarredPage() {
           重做选中
         </Button>
       </Group>
+      <TextInput
+        mb="md"
+        placeholder="搜索收藏题目、标签、章节或题库"
+        value={searchText}
+        onChange={(event) => setSearchText(event.currentTarget.value)}
+        leftSection={<IconSearch size={16} />}
+      />
 
       {questions.length === 0 ? (
         <EmptyState title="还没有收藏" description="在题库详情页点击星标后，题目会出现在这里。" />
@@ -135,7 +174,15 @@ export function StarredPage() {
           {groupedQuestions.map(([groupName, groupQuestions]) => (
             <Box key={groupName} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
               <Group justify="space-between" px="md" py="sm" style={{ borderBottom: '1px solid var(--border-light)' }}>
-                <Text fw={600}>{groupName}</Text>
+                <Group gap="sm">
+                  <Checkbox
+                    checked={groupQuestions.every((question) => selectedIds.has(question.id))}
+                    indeterminate={groupQuestions.some((question) => selectedIds.has(question.id)) && !groupQuestions.every((question) => selectedIds.has(question.id))}
+                    onChange={() => toggleGroup(groupQuestions)}
+                    aria-label={`选择 ${groupName}`}
+                  />
+                  <Text fw={600}>{groupName}</Text>
+                </Group>
                 <Badge variant="light">{groupQuestions.length} 题</Badge>
               </Group>
               {groupQuestions.map((question, index) => (
@@ -154,7 +201,7 @@ export function StarredPage() {
                           size="sm"
                           lineClamp={1}
                           style={{ maxWidth: 720, cursor: 'pointer' }}
-                          onClick={() => navigate(`/bank/${question.bankId}/editor/${question.id}`)}
+                          onClick={() => setPreviewQuestion(question)}
                         >
                           {extractText(question.body)}
                         </Text>
@@ -175,6 +222,24 @@ export function StarredPage() {
           ))}
         </Stack>
       )}
+      <Modal opened={previewQuestion !== null} onClose={() => setPreviewQuestion(null)} title="题目预览" size="lg">
+        {previewQuestion && (
+          <Stack gap="md">
+            <Text size="sm" c="dimmed">
+              预览不可直接修改；需要调整题目时，请进入题库中的题目编辑页。
+            </Text>
+            <QuizQuestion question={previewQuestion} selectedAnswer={[]} onSelect={() => undefined} showResult readOnly showNotes={false} />
+            <Group justify="flex-end">
+              <Button variant="default" onClick={() => setPreviewQuestion(null)}>
+                关闭
+              </Button>
+              <Button leftSection={<IconEdit size={16} />} onClick={() => editQuestion(previewQuestion)}>
+                修改题目
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
     </Box>
   );
 }

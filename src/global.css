@@ -184,10 +184,23 @@ a {
 
 .quiz-option-letter {
   flex-shrink: 0;
-  min-width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   display: inline-grid;
   place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.quiz-option-letter.is-selected {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--text-on-accent);
 }
 
 .mantine-RichTextEditor-content code,

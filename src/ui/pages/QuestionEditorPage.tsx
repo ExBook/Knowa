@@ -2,7 +2,7 @@ import { ActionIcon, Box, Button, Group, Select, SimpleGrid, Stack, TagsInput, T
 import { notifications } from '@mantine/notifications';
 import { IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Option, Question } from '../../shared/types';
 import { useBankStore } from '../../stores/bankStore';
 import { useQuestionStore } from '../../stores/questionStore';
@@ -13,10 +13,12 @@ const textDoc = (text: string): object => ({ type: 'doc', content: [{ type: 'par
 
 export function QuestionEditorPage() {
   const { id, questionId } = useParams<{ id: string; questionId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { loadBanks } = useBankStore();
   const { questions, loadQuestions, createQuestion, updateQuestion } = useQuestionStore();
   const isNew = questionId === 'new';
+  const returnTo = searchParams.get('returnTo') ?? `/bank/${id}`;
   const existing = isNew ? null : questions.find((question) => question.id === questionId);
 
   const [type, setType] = useState<Question['type']>('single');
@@ -114,7 +116,7 @@ export function QuestionEditorPage() {
         await updateQuestion(questionId, { type, body, options, answer, explanation, tags, chapter, section, knowledgePoint });
       }
       await loadBanks();
-      navigate(`/bank/${id}`);
+      navigate(returnTo);
     } catch (error) {
       notifications.show({ color: 'red', title: '保存失败', message: (error as Error).message });
     } finally {
@@ -127,7 +129,7 @@ export function QuestionEditorPage() {
       <Box style={{ borderBottom: '1px solid var(--border-light)', padding: '16px 24px', background: 'var(--bg-surface)' }}>
         <Group justify="space-between" align="center">
           <Group gap="sm">
-            <ActionIcon variant="subtle" onClick={() => navigate(`/bank/${id}`)} aria-label="返回题库详情">
+            <ActionIcon variant="subtle" onClick={() => navigate(returnTo)} aria-label="返回">
               <IconArrowLeft size={18} />
             </ActionIcon>
             <Title order={2} style={{ margin: 0 }}>
@@ -135,7 +137,7 @@ export function QuestionEditorPage() {
             </Title>
           </Group>
           <Group gap="sm">
-            <Button variant="default" onClick={() => navigate(`/bank/${id}`)}>
+            <Button variant="default" onClick={() => navigate(returnTo)}>
               取消
             </Button>
             <Button onClick={() => void handleSave()} loading={saving}>

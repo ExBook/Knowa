@@ -15,6 +15,7 @@ import {
   Tabs,
   Text,
   Textarea,
+  TextInput,
   Title,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -28,6 +29,7 @@ import {
   IconFileTypePdf,
   IconPlayerPlay,
   IconPlus,
+  IconSearch,
   IconStar,
   IconStarFilled,
   IconTrash,
@@ -154,6 +156,8 @@ export function BankDetailPage() {
   const [chapterFilter, setChapterFilter] = useState<string | null>(null);
   const [sectionFilter, setSectionFilter] = useState<string | null>(null);
   const [knowledgeFilter, setKnowledgeFilter] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<Question['type'] | null>(null);
+  const [searchText, setSearchText] = useState('');
   const bank = banks.find((item) => item.id === id);
   const parsedQuestions = useMemo(() => parseMarkdown(markdownText), [markdownText]);
   const markdownErrors = useMemo(() => validateMarkdownQuestions(parsedQuestions), [parsedQuestions]);
@@ -175,12 +179,23 @@ export function BankDetailPage() {
   const filteredQuestions = useMemo(
     () =>
       questions.filter(
-        (question) =>
-          (!chapterFilter || question.chapter === chapterFilter) &&
-          (!sectionFilter || question.section === sectionFilter) &&
-          (!knowledgeFilter || question.knowledgePoint === knowledgeFilter),
+        (question) => {
+          const keyword = searchText.trim().toLowerCase();
+          return (
+            (!chapterFilter || question.chapter === chapterFilter) &&
+            (!sectionFilter || question.section === sectionFilter) &&
+            (!knowledgeFilter || question.knowledgePoint === knowledgeFilter) &&
+            (!typeFilter || question.type === typeFilter) &&
+            (!keyword ||
+              [extractText(question.body), question.tags.join(' '), question.chapter, question.section, question.knowledgePoint]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase()
+                .includes(keyword))
+          );
+        },
       ),
-    [chapterFilter, knowledgeFilter, questions, sectionFilter],
+    [chapterFilter, knowledgeFilter, questions, searchText, sectionFilter, typeFilter],
   );
 
   useEffect(() => {
@@ -289,11 +304,6 @@ export function BankDetailPage() {
 
     try {
       await updateQuestion(question.id, { starred: !question.starred });
-      notifications.show({
-        color: 'green',
-        title: question.starred ? '已取消收藏' : '已收藏',
-        message: question.starred ? '题目已从收藏中移除' : '题目已加入收藏列表',
-      });
     } catch (error) {
       notifications.show({ color: 'red', title: '操作失败', message: (error as Error).message });
     }
@@ -368,6 +378,26 @@ export function BankDetailPage() {
               <Button leftSection={<IconPlus size={16} />} onClick={() => navigate(`/bank/${id}/editor/new`)}>
                 添加题目
               </Button>
+              <TextInput
+                label="搜索"
+                placeholder="题干 / 标签 / 章节"
+                value={searchText}
+                onChange={(event) => setSearchText(event.currentTarget.value)}
+                leftSection={<IconSearch size={16} />}
+                style={{ minWidth: 240 }}
+              />
+              <Select
+                label="题型"
+                placeholder="全部"
+                data={[
+                  { value: 'single', label: '单选' },
+                  { value: 'multiple', label: '多选' },
+                  { value: 'truefalse', label: '判断' },
+                ]}
+                value={typeFilter}
+                onChange={(value) => setTypeFilter(value as Question['type'] | null)}
+                clearable
+              />
               <Select
                 label="章"
                 placeholder="全部"

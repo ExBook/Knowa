@@ -11,8 +11,8 @@ interface QuizQuestionProps {
   selectedAnswer: number[];
   onSelect: (indices: number[]) => void;
   showResult: boolean;
-  mode: 'practice' | 'exam';
   readOnly?: boolean;
+  showNotes?: boolean;
 }
 
 type RichNode = {
@@ -165,7 +165,7 @@ function NotePanel({ questionId, bankId }: { questionId: string; bankId: string 
   );
 }
 
-export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, mode, readOnly }: QuizQuestionProps) {
+export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, readOnly, showNotes = true }: QuizQuestionProps) {
   const optionCols = question.options.some((option) => richTextLength(option.content) > 42) ? { base: 1 } : { base: 1, sm: 2 };
   const toggleOption = (index: number) => {
     if (readOnly) {
@@ -202,9 +202,6 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, m
       <Group gap="xs" mb="md">
         <Badge variant="light" size="sm">
           {typeLabel(question.type)}
-        </Badge>
-        <Badge variant="outline" size="sm">
-          {mode === 'practice' ? '即时反馈' : '统一交卷'}
         </Badge>
         {question.tags.map((tag) => (
           <Badge key={tag} variant="outline" size="sm">
@@ -262,9 +259,7 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, m
                 onClick={() => toggleOption(index)}
                 disabled={readOnly}
                 leftSection={
-                  <Badge size="sm" radius="xl" variant={isSelected ? 'filled' : 'light'} color={isSelected ? 'slate' : 'gray'}>
-                    <span className="quiz-option-letter">{String.fromCharCode(65 + index)}</span>
-                  </Badge>
+                  <span className={`quiz-option-letter ${isSelected ? 'is-selected' : ''}`}>{String.fromCharCode(65 + index)}</span>
                 }
               >
                 <Box style={{ textAlign: 'left' }}>{renderTipTapContent(option.content)}</Box>
@@ -291,7 +286,7 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, m
         </Box>
       )}
 
-      {showResult && <NotePanel questionId={question.id} bankId={question.bankId} />}
+      {showResult && showNotes && <NotePanel questionId={question.id} bankId={question.bankId} />}
     </Box>
   );
 }

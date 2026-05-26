@@ -8,6 +8,7 @@ import {
   LoadingOverlay,
   Modal,
   SimpleGrid,
+  Select,
   TagsInput,
   Text,
   Textarea,
@@ -16,13 +17,35 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconEdit, IconFileImport, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconEdit, IconFileImport, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { importExbank } from '../../services/importExportService';
-import type { Bank } from '../../shared/types';
+import { questionService } from '../../services/questionService';
+import type { Bank, Question } from '../../shared/types';
 import { useBankStore } from '../../stores/bankStore';
 import { EmptyState } from '../components/EmptyState';
+
+function extractText(body: object): string {
+  const texts: string[] = [];
+  const walk = (value: unknown): void => {
+    if (!value || typeof value !== 'object') {
+      return;
+    }
+    const node = value as { type?: string; text?: string; attrs?: { alt?: string; latex?: string }; content?: unknown[] };
+    if (node.type === 'mathInline') {
+      texts.push(node.attrs?.latex ?? '');
+    } else if (node.text) {
+      texts.push(node.text);
+    } else if (node.type === 'image') {
+      texts.push(node.attrs?.alt ? `[图片: ${node.attrs.alt}]` : '[图片]');
+    }
+    node.content?.forEach(walk);
+  };
+
+  walk(body);
+  return texts.join(' ').trim() || '(富文本内容)';
+}
 
 export function BankListPage() {
   const { banks, loading, loadBanks, createBank, updateBank, deleteBank } = useBankStore();
@@ -36,10 +59,18 @@ export function BankListPage() {
   const [deletingBank, setDeletingBank] = useState<Bank | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [allQuestions, setAllQuestions] = useState<Question[]>([]);
+  const [searchText, setSearchText] = useState('');
+  const [bankFilter, setBankFilter] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<Question['type'] | null>(null);
 
   useEffect(() => {
     void loadBanks();
   }, [loadBanks]);
+
+  useEffect(() => {
+    void questionService.getAllQuestions().then(setAllQuestions);
+  }, [banks.length]);
 
   const handleOpenCreate = () => {
     setEditingBank(null);
@@ -128,6 +159,21 @@ export function BankListPage() {
     );
   };
 
+  const searchActive = Boolean(searchText.trim() || bankFilter || typeFilter);
+  const searchResults = allQuestions.filter((question) => {
+    const keyword = searchText.trim().toLowerCase();
+    return (
+      (!bankFilter || question.bankId === bankFilter) &&
+      (!typeFilter || question.type === typeFilter) &&
+      (!keyword ||
+        [extractText(question.body), question.tags.join(' '), question.chapter, question.section, question.knowledgePoint, banks.find((bank) => bank.id === question.bankId)?.name]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(keyword))
+    );
+  });
+
   return (
     <Box>
       <Box className="page-header-sticky">
@@ -162,7 +208,64 @@ export function BankListPage() {
 
       <Box p="xl" pos="relative">
         <LoadingOverlay visible={loading} />
-        {banks.length === 0 ? (
+        <Group mb="md" align="flex-end">
+          <TextInput
+            label="全局搜题"
+            placeholder="题干 / 标签 / 章节 / 题库"
+            value={searchText}
+            onChange={(event) => setSearchText(event.currentTarget.value)}
+            leftSection={<IconSearch size={16} />}
+            style={{ minWidth: 280 }}
+          />
+          <Select
+            label="题库"
+            placeholder="全部"
+            data={banks.map((bank) => ({ value: bank.id, label: bank.name }))}
+            value={bankFilter}
+            onChange={setBankFilter}
+            clearable
+            searchable
+          />
+          <Select
+            label="题型"
+            placeholder="全部"
+            data={[
+              { value: 'single', label: '单选' },
+              { value: 'multiple', label: '多选' },
+              { value: 'truefalse', label: '判断' },
+            ]}
+            value={typeFilter}
+            onChange={(value) => setTypeFilter(value as Question['type'] | null)}
+            clearable
+          />
+        </Group>
+        {searchActive ? (
+          <Box style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
+            {searchResults.length === 0 ? (
+              <Text p="md" c="dimmed" size="sm">
+                没有匹配的题目。
+              </Text>
+            ) : (
+              searchResults.map((question, index) => (
+                <Box key={question.id} p="md" style={{ borderBottom: index === searchResults.length - 1 ? 'none' : '1px solid var(--border-light)' }}>
+                  <Group justify="space-between" gap="md" wrap="nowrap">
+                    <Box style={{ minWidth: 0 }}>
+                      <Text size="sm" lineClamp={1} style={{ cursor: 'pointer' }} onClick={() => navigate(`/bank/${question.bankId}/editor/${question.id}`)}>
+                        {extractText(question.body)}
+                      </Text>
+                      <Text size="xs" c="dimmed" lineClamp={1}>
+                        {[banks.find((bank) => bank.id === question.bankId)?.name, question.chapter, question.section, question.knowledgePoint].filter(Boolean).join(' / ')}
+                      </Text>
+                    </Box>
+                    <Button size="xs" variant="light" onClick={() => navigate(`/bank/${question.bankId}`)}>
+                      打开题库
+                    </Button>
+                  </Group>
+                </Box>
+              ))
+            )}
+          </Box>
+        ) : banks.length === 0 ? (
           <EmptyState title="还没有题库" description="创建你的第一个题库，或导入别人的题库文件">
             <Group justify="center">
               <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreate}>

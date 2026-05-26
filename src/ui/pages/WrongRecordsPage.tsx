@@ -1,5 +1,5 @@
-import { ActionIcon, Badge, Box, Button, Checkbox, Group, LoadingOverlay, SegmentedControl, Stack, Text, Title, Tooltip } from '@mantine/core';
-import { IconPlayerPlay, IconStar, IconStarFilled } from '@tabler/icons-react';
+import { ActionIcon, Badge, Box, Button, Checkbox, Group, LoadingOverlay, Modal, SegmentedControl, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
+import { IconEdit, IconPlayerPlay, IconSearch, IconStar, IconStarFilled } from '@tabler/icons-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { quizRecordRepo } from '../../repo/quizRecordRepo';
@@ -8,6 +8,7 @@ import { questionService } from '../../services/questionService';
 import type { Question, QuizRecord } from '../../shared/types';
 import { useBankStore } from '../../stores/bankStore';
 import { EmptyState } from '../components/EmptyState';
+import { QuizQuestion } from '../components/QuizQuestion';
 
 function extractText(body: object): string {
   const texts: string[] = [];
@@ -42,6 +43,8 @@ export function WrongRecordsPage() {
   const [loading, setLoading] = useState(true);
   const [groupMode, setGroupMode] = useState<'bank' | 'chapter'>('bank');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [searchText, setSearchText] = useState('');
+  const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
   const settings = getAppSettings();
 
   useEffect(() => {
@@ -65,6 +68,18 @@ export function WrongRecordsPage() {
   const bankName = useCallback((bankId: string) => banks.find((bank) => bank.id === bankId)?.name ?? '未知题库', [banks]);
   const wrongQuestions = useMemo(() => {
     return questions.filter((question) => {
+      const keyword = searchText.trim().toLowerCase();
+      if (
+        keyword &&
+        ![extractText(question.body), question.tags.join(' '), question.chapter, question.section, question.knowledgePoint, bankName(question.bankId)]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(keyword)
+      ) {
+        return false;
+      }
+
       const questionRecords = records.filter((record) => record.questionId === question.id);
       if (questionRecords.length === 0) {
         return false;
@@ -76,7 +91,7 @@ export function WrongRecordsPage() {
 
       return questionRecords.some((record) => !record.isCorrect);
     });
-  }, [questions, records, settings.removeWrongWhenCorrect]);
+  }, [bankName, questions, records, searchText, settings.removeWrongWhenCorrect]);
 
   const grouped = useMemo(() => {
     const groups = new Map<string, Question[]>();
@@ -114,6 +129,25 @@ export function WrongRecordsPage() {
     navigate(`/bank/${first.bankId}/quiz`);
   };
 
+  const toggleGroup = (groupQuestions: Question[]) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      const allSelected = groupQuestions.every((question) => next.has(question.id));
+      groupQuestions.forEach((question) => {
+        if (allSelected) {
+          next.delete(question.id);
+        } else {
+          next.add(question.id);
+        }
+      });
+      return next;
+    });
+  };
+
+  const editQuestion = (question: Question) => {
+    navigate(`/bank/${question.bankId}/editor/${question.id}?returnTo=${encodeURIComponent('/wrong')}`);
+  };
+
   return (
     <Box p="xl" pos="relative">
       <LoadingOverlay visible={loading} />
@@ -136,6 +170,13 @@ export function WrongRecordsPage() {
           重做选中
         </Button>
       </Group>
+      <TextInput
+        mb="md"
+        placeholder="搜索错题、标签、章节或题库"
+        value={searchText}
+        onChange={(event) => setSearchText(event.currentTarget.value)}
+        leftSection={<IconSearch size={16} />}
+      />
 
       {wrongQuestions.length === 0 ? (
         <EmptyState title="还没有错题" description="做题后，答错的题会出现在这里。" />
@@ -144,7 +185,15 @@ export function WrongRecordsPage() {
           {grouped.map(([groupName, groupQuestions]) => (
             <Box key={groupName} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
               <Group justify="space-between" px="md" py="sm" style={{ borderBottom: '1px solid var(--border-light)' }}>
-                <Text fw={600}>{groupName}</Text>
+                <Group gap="sm">
+                  <Checkbox
+                    checked={groupQuestions.every((question) => selectedIds.has(question.id))}
+                    indeterminate={groupQuestions.some((question) => selectedIds.has(question.id)) && !groupQuestions.every((question) => selectedIds.has(question.id))}
+                    onChange={() => toggleGroup(groupQuestions)}
+                    aria-label={`选择 ${groupName}`}
+                  />
+                  <Text fw={600}>{groupName}</Text>
+                </Group>
                 <Badge variant="light" color="red">
                   {groupQuestions.length} 题
                 </Badge>
@@ -162,7 +211,7 @@ export function WrongRecordsPage() {
                           size="sm"
                           lineClamp={1}
                           style={{ maxWidth: 760, cursor: 'pointer' }}
-                          onClick={() => navigate(`/bank/${question.bankId}/editor/${question.id}`)}
+                          onClick={() => setPreviewQuestion(question)}
                         >
                           {extractText(question.body)}
                         </Text>
@@ -188,6 +237,24 @@ export function WrongRecordsPage() {
           ))}
         </Stack>
       )}
+      <Modal opened={previewQuestion !== null} onClose={() => setPreviewQuestion(null)} title="题目预览" size="lg">
+        {previewQuestion && (
+          <Stack gap="md">
+            <Text size="sm" c="dimmed">
+              预览不可直接修改；需要调整题目时，请进入题库中的题目编辑页。
+            </Text>
+            <QuizQuestion question={previewQuestion} selectedAnswer={[]} onSelect={() => undefined} showResult readOnly showNotes={false} />
+            <Group justify="flex-end">
+              <Button variant="default" onClick={() => setPreviewQuestion(null)}>
+                关闭
+              </Button>
+              <Button leftSection={<IconEdit size={16} />} onClick={() => editQuestion(previewQuestion)}>
+                修改题目
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
     </Box>
   );
 }

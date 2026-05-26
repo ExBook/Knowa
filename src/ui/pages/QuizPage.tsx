@@ -1,6 +1,5 @@
 import { Box, Button, Group, Modal, SegmentedControl, Select, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { notifications } from '@mantine/notifications';
 import { IconArrowLeft, IconMaximize, IconMinimize, IconStar, IconStarFilled } from '@tabler/icons-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -134,7 +133,6 @@ export function QuizPage() {
     const next = !(starredOverrides[currentQuestion.id] ?? currentQuestion.starred ?? false);
     await questionService.updateQuestion(currentQuestion.id, { starred: next });
     setStarredOverrides((current) => ({ ...current, [currentQuestion.id]: next }));
-    notifications.show({ color: 'green', title: next ? '已收藏' : '已取消收藏', message: next ? '题目已加入收藏' : '题目已移出收藏' });
   };
 
   const navColor = (questionId: string) => {
@@ -274,8 +272,8 @@ export function QuizPage() {
       <Box style={{ borderBottom: '1px solid var(--border-light)', padding: '12px 24px', background: 'var(--bg-surface)' }}>
         <Group justify="space-between" gap="md" wrap="nowrap">
           <Group gap="xs" wrap="nowrap">
-            <Button variant="subtle" leftSection={<IconArrowLeft size={16} />} onClick={() => navigate(`/bank/${id}`)}>
-              返回
+            <Button variant="subtle" px="xs" aria-label="返回题库" onClick={() => navigate(`/bank/${id}`)}>
+              <IconArrowLeft size={18} />
             </Button>
             <QuizProgress current={currentIndex} total={questions.length} answeredCount={answeredCount} elapsed={timer} mode={mode} />
           </Group>
@@ -304,7 +302,6 @@ export function QuizPage() {
               selectedAnswer={currentEntry?.selected ?? []}
               onSelect={(indices) => store.selectAnswer(currentQuestion.id, indices)}
               showResult={(mode === 'practice' && currentEntry?.answered) || reviewMode}
-              mode={mode}
               readOnly={reviewMode}
             />
           ) : (
