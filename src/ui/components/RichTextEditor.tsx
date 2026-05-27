@@ -2,7 +2,7 @@ import '@mantine/tiptap/styles.css';
 import 'katex/dist/katex.min.css';
 
 import { Box, Button, Group, Popover, SegmentedControl, Slider, Text, TextInput } from '@mantine/core';
-import { Link, RichTextEditor as MantineRichTextEditor } from '@mantine/tiptap';
+import { RichTextEditor as MantineRichTextEditor } from '@mantine/tiptap';
 import { IconCheck, IconMathFunction, IconPhoto } from '@tabler/icons-react';
 import { mergeAttributes, Node } from '@tiptap/core';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
@@ -12,7 +12,6 @@ import { Table } from '@tiptap/extension-table';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TableRow from '@tiptap/extension-table-row';
-import Underline from '@tiptap/extension-underline';
 import { NodeViewWrapper, ReactNodeViewRenderer, useEditor, type NodeViewProps } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import katex from 'katex';
@@ -53,6 +52,51 @@ function MathBlockView({ node }: NodeViewProps) {
       data-latex={latex}
       dangerouslySetInnerHTML={{ __html: renderMath(latex) }}
     />
+  );
+}
+
+function ImageView({ node, selected, updateAttributes }: NodeViewProps) {
+  const src = String(node.attrs.src ?? '');
+  const alt = String(node.attrs.alt ?? '');
+  const width = Number(node.attrs.width ?? 60);
+  const align = String(node.attrs.align ?? 'center') as 'left' | 'center' | 'right';
+
+  return (
+    <NodeViewWrapper className={`rich-editor-image-node ${selected ? 'is-selected' : ''}`} contentEditable={false}>
+      <Box className={`rich-editor-image-frame align-${align}`}>
+        <img src={src} alt={alt} className="rich-editor-image" style={{ width: `${width}%` }} />
+      </Box>
+      {selected && (
+        <Box className="rich-editor-image-controls">
+          <Group gap="xs" wrap="nowrap" align="center">
+            <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
+              图片
+            </Text>
+            <Box style={{ flex: 1, minWidth: 120 }}>
+              <Slider
+                size="xs"
+                value={width}
+                min={20}
+                max={100}
+                step={5}
+                label={(value) => `${value}%`}
+                onChange={(value) => updateAttributes({ width: value })}
+              />
+            </Box>
+            <SegmentedControl
+              size="xs"
+              value={align}
+              onChange={(value) => updateAttributes({ align: value })}
+              data={[
+                { value: 'left', label: '左' },
+                { value: 'center', label: '中' },
+                { value: 'right', label: '右' },
+              ]}
+            />
+          </Group>
+        </Box>
+      )}
+    </NodeViewWrapper>
   );
 }
 
@@ -122,8 +166,8 @@ const StyledImage = Image.extend({
     return {
       ...this.parent?.(),
       width: {
-        default: 100,
-        parseHTML: (element) => Number(element.getAttribute('data-width') ?? 100),
+        default: 60,
+        parseHTML: (element) => Number(element.getAttribute('data-width') ?? 60),
         renderHTML: (attributes) => ({ 'data-width': attributes.width }),
       },
       align: {
@@ -151,6 +195,10 @@ const StyledImage = Image.extend({
       }),
     ];
   },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(ImageView);
+  },
 });
 
 interface RichTextEditorProps {
@@ -176,7 +224,6 @@ export function RichTextEditor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ codeBlock: false }),
-      Underline,
       StyledImage,
       CodeBlockLowlight.configure({ lowlight }),
       Placeholder.configure({ placeholder }),
@@ -184,7 +231,6 @@ export function RichTextEditor({
       TableRow,
       TableCell,
       TableHeader,
-      Link,
       MathInline,
       MathBlock,
     ],

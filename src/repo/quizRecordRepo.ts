@@ -38,6 +38,10 @@ export const quizRecordRepo = {
     return db.quizRecords.where('questionId').equals(questionId).sortBy('timestamp');
   },
 
+  async findAll(): Promise<QuizRecord[]> {
+    return db.quizRecords.orderBy('timestamp').reverse().toArray();
+  },
+
   async getStats(bankId: string): Promise<QuizStats> {
     const records = await db.quizRecords.where('bankId').equals(bankId).toArray();
     const correctCount = records.filter((record) => record.isCorrect).length;

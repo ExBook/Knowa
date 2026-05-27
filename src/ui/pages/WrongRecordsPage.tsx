@@ -1,4 +1,4 @@
-import { ActionIcon, Badge, Box, Button, Checkbox, Group, LoadingOverlay, Modal, SegmentedControl, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
+import { Accordion, ActionIcon, Badge, Box, Button, Checkbox, Group, LoadingOverlay, Modal, SegmentedControl, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
 import { IconEdit, IconPlayerPlay, IconSearch, IconStar, IconStarFilled } from '@tabler/icons-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -184,23 +184,29 @@ export function WrongRecordsPage() {
       {wrongQuestions.length === 0 ? (
         <EmptyState title="还没有错题" description="做题后，答错的题会出现在这里。" />
       ) : (
-        <Stack gap="md">
+        <Accordion className="surface-accordion" multiple defaultValue={grouped.slice(0, 3).map(([groupName]) => groupName)}>
           {grouped.map(([groupName, groupQuestions]) => (
-            <Box key={groupName} className="surface-list">
-              <Group justify="space-between" px="md" py="sm" style={{ borderBottom: '1px solid var(--border-light)' }}>
-                <Group gap="sm">
-                  <Checkbox
-                    checked={groupQuestions.every((question) => selectedIds.has(question.id))}
-                    indeterminate={groupQuestions.some((question) => selectedIds.has(question.id)) && !groupQuestions.every((question) => selectedIds.has(question.id))}
-                    onChange={() => toggleGroup(groupQuestions)}
-                    aria-label={`选择 ${groupName}`}
-                  />
-                  <Text fw={600}>{groupName}</Text>
+            <Accordion.Item key={groupName} value={groupName}>
+              <Accordion.Control>
+                <Group justify="space-between" pr="md">
+                  <Group gap="sm" wrap="nowrap">
+                    <Box onClick={(event) => event.stopPropagation()}>
+                      <Checkbox
+                        checked={groupQuestions.every((question) => selectedIds.has(question.id))}
+                        indeterminate={groupQuestions.some((question) => selectedIds.has(question.id)) && !groupQuestions.every((question) => selectedIds.has(question.id))}
+                        onChange={() => toggleGroup(groupQuestions)}
+                        aria-label={`选择 ${groupName}`}
+                      />
+                    </Box>
+                    <Text fw={600}>{groupName}</Text>
+                  </Group>
+                  <Badge variant="light" color="red">
+                    {groupQuestions.length} 题
+                  </Badge>
                 </Group>
-                <Badge variant="light" color="red">
-                  {groupQuestions.length} 题
-                </Badge>
-              </Group>
+              </Accordion.Control>
+              <Accordion.Panel>
+              <Box className="surface-list surface-list-flat">
               {groupQuestions.map((question) => (
                 <Box key={question.id} className="question-row">
                   <Group justify="space-between" gap="md" wrap="nowrap">
@@ -233,9 +239,11 @@ export function WrongRecordsPage() {
                   </Group>
                 </Box>
               ))}
-            </Box>
+              </Box>
+              </Accordion.Panel>
+            </Accordion.Item>
           ))}
-        </Stack>
+        </Accordion>
       )}
       </Box>
       <Modal opened={previewQuestion !== null} onClose={() => setPreviewQuestion(null)} title="题目预览" size="lg">

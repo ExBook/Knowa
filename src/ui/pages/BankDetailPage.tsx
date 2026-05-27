@@ -8,6 +8,7 @@ import {
   Group,
   LoadingOverlay,
   Modal,
+  Popover,
   ScrollArea,
   Select,
   SimpleGrid,
@@ -25,6 +26,7 @@ import {
   IconChartBar,
   IconDownload,
   IconEdit,
+  IconFilter,
   IconFileImport,
   IconFileTypePdf,
   IconPlayerPlay,
@@ -44,6 +46,7 @@ import { useQuestionStore } from '../../stores/questionStore';
 import type { Question } from '../../shared/types';
 import { EmptyState } from '../components/EmptyState';
 import { ImportDropZone } from '../components/ImportDropZone';
+import { QuizQuestion } from '../components/QuizQuestion';
 
 const markdownExample = `# Q1 [单选题] [标签: 数学, 基础]
 当 \`x\` 满足 $x^2=4$ 时，下列说法正确的是？
@@ -158,6 +161,7 @@ export function BankDetailPage() {
   const [knowledgeFilter, setKnowledgeFilter] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<Question['type'] | null>(null);
   const [searchText, setSearchText] = useState('');
+  const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
   const bank = banks.find((item) => item.id === id);
   const parsedQuestions = useMemo(() => parseMarkdown(markdownText), [markdownText]);
   const markdownErrors = useMemo(() => validateMarkdownQuestions(parsedQuestions), [parsedQuestions]);
@@ -197,6 +201,7 @@ export function BankDetailPage() {
       ),
     [chapterFilter, knowledgeFilter, questions, searchText, sectionFilter, typeFilter],
   );
+  const activeFilterCount = [typeFilter, chapterFilter, sectionFilter, knowledgeFilter].filter(Boolean).length;
 
   useEffect(() => {
     void loadBanks();
@@ -323,6 +328,10 @@ export function BankDetailPage() {
     }
   };
 
+  const editPreviewQuestion = (question: Question) => {
+    navigate(`/bank/${id}/editor/${question.id}?returnTo=${encodeURIComponent(`/bank/${id}`)}`);
+  };
+
   if (!bank) {
     return (
       <Box p="xl">
@@ -355,7 +364,7 @@ export function BankDetailPage() {
             <Button variant="default" leftSection={<IconFileTypePdf size={16} />} onClick={() => navigate(`/bank/${id}/export`)}>
               导出 PDF
             </Button>
-            <Button variant="light" color="red" size="xs" onClick={openClearModal}>
+            <Button variant="default" color="red" onClick={openClearModal}>
               清空记录
             </Button>
             <Button leftSection={<IconPlayerPlay size={16} />} onClick={() => navigate(`/bank/${id}/quiz`)}>
@@ -384,54 +393,77 @@ export function BankDetailPage() {
                 value={searchText}
                 onChange={(event) => setSearchText(event.currentTarget.value)}
                 leftSection={<IconSearch size={16} />}
-                style={{ minWidth: 240 }}
+                style={{ minWidth: 0, flex: '1 1 240px' }}
               />
-              <Select
-                label="题型"
-                placeholder="全部"
-                data={[
-                  { value: 'single', label: '单选' },
-                  { value: 'multiple', label: '多选' },
-                  { value: 'truefalse', label: '判断' },
-                ]}
-                value={typeFilter}
-                onChange={(value) => setTypeFilter(value as Question['type'] | null)}
-                clearable
-              />
-              <Select
-                label="章"
-                placeholder="全部"
-                data={chapterOptions}
-                value={chapterFilter}
-                onChange={(value) => {
-                  setChapterFilter(value);
-                  setSectionFilter(null);
-                  setKnowledgeFilter(null);
-                }}
-                clearable
-                searchable
-              />
-              <Select
-                label="节"
-                placeholder="全部"
-                data={sectionOptions}
-                value={sectionFilter}
-                onChange={(value) => {
-                  setSectionFilter(value);
-                  setKnowledgeFilter(null);
-                }}
-                clearable
-                searchable
-              />
-              <Select
-                label="知识点"
-                placeholder="全部"
-                data={knowledgeOptions}
-                value={knowledgeFilter}
-                onChange={setKnowledgeFilter}
-                clearable
-                searchable
-              />
+              <Popover position="bottom-end" shadow="md" withArrow width={300}>
+                <Popover.Target>
+                  <Button variant="default" leftSection={<IconFilter size={16} />}>
+                    筛选{activeFilterCount > 0 ? ` ${activeFilterCount}` : ''}
+                  </Button>
+                </Popover.Target>
+                <Popover.Dropdown>
+                  <Stack gap="sm">
+                    <Select
+                      label="题型"
+                      placeholder="全部题型"
+                      data={[
+                        { value: 'single', label: '单选' },
+                        { value: 'multiple', label: '多选' },
+                        { value: 'truefalse', label: '判断' },
+                      ]}
+                      value={typeFilter}
+                      onChange={(value) => setTypeFilter(value as Question['type'] | null)}
+                      clearable
+                    />
+                    <Select
+                      label="章"
+                      placeholder="全部章节"
+                      data={chapterOptions}
+                      value={chapterFilter}
+                      onChange={(value) => {
+                        setChapterFilter(value);
+                        setSectionFilter(null);
+                        setKnowledgeFilter(null);
+                      }}
+                      clearable
+                      searchable
+                    />
+                    <Select
+                      label="节"
+                      placeholder="全部小节"
+                      data={sectionOptions}
+                      value={sectionFilter}
+                      onChange={(value) => {
+                        setSectionFilter(value);
+                        setKnowledgeFilter(null);
+                      }}
+                      clearable
+                      searchable
+                    />
+                    <Select
+                      label="知识点"
+                      placeholder="全部知识点"
+                      data={knowledgeOptions}
+                      value={knowledgeFilter}
+                      onChange={setKnowledgeFilter}
+                      clearable
+                      searchable
+                    />
+                    <Button
+                      variant="subtle"
+                      size="xs"
+                      onClick={() => {
+                        setTypeFilter(null);
+                        setChapterFilter(null);
+                        setSectionFilter(null);
+                        setKnowledgeFilter(null);
+                      }}
+                    >
+                      清空筛选
+                    </Button>
+                  </Stack>
+                </Popover.Dropdown>
+              </Popover>
             </Group>
 
             {questions.length === 0 ? (
@@ -452,7 +484,7 @@ export function BankDetailPage() {
                           {question.order}
                         </Badge>
                         <Box style={{ minWidth: 0 }}>
-                          <Text size="sm" lineClamp={1} className="question-title">
+                          <Text size="sm" lineClamp={1} className="question-title" onClick={() => setPreviewQuestion(question)}>
                             {extractText(question.body)}
                           </Text>
                           <Group className="question-meta">
@@ -629,6 +661,25 @@ export function BankDetailPage() {
             清空记录
           </Button>
         </Group>
+      </Modal>
+
+      <Modal opened={previewQuestion !== null} onClose={() => setPreviewQuestion(null)} title="题目预览" size="lg">
+        {previewQuestion && (
+          <Stack gap="md">
+            <Text size="sm" c="dimmed">
+              预览不可直接修改；需要调整题目时，请进入题目编辑页。
+            </Text>
+            <QuizQuestion question={previewQuestion} selectedAnswer={[]} onSelect={() => undefined} showResult readOnly showNotes={false} />
+            <Group justify="flex-end">
+              <Button variant="default" onClick={() => setPreviewQuestion(null)}>
+                关闭
+              </Button>
+              <Button leftSection={<IconEdit size={16} />} onClick={() => editPreviewQuestion(previewQuestion)}>
+                修改题目
+              </Button>
+            </Group>
+          </Stack>
+        )}
       </Modal>
     </Box>
   );

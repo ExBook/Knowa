@@ -65,6 +65,144 @@
   color-scheme: dark;
 }
 
+html[data-theme-preset='sage'] {
+  --bg-root: #f5f7f0;
+  --bg-surface: #ffffff;
+  --bg-muted: #edf2e8;
+  --bg-hover: #e4eadc;
+  --bg-active: #d7e0cf;
+  --text-primary: #1f2a22;
+  --text-secondary: #667164;
+  --text-muted: #9ba595;
+  --accent: #466655;
+  --accent-light: #e5eee8;
+  --accent-hover: #385545;
+  --accent-active: #2a4436;
+  --amber: #b88a55;
+  --amber-light: #fbf1e6;
+  --border: #dde5d7;
+  --border-light: #e9eee3;
+  color-scheme: light;
+}
+
+html[data-theme-preset='porcelain'] {
+  --bg-root: #f7fafb;
+  --bg-surface: #ffffff;
+  --bg-muted: #eef4f6;
+  --bg-hover: #e5eff3;
+  --bg-active: #d8e7ee;
+  --text-primary: #17242d;
+  --text-secondary: #60737e;
+  --text-muted: #9aabb4;
+  --accent: #2f5d7c;
+  --accent-light: #e3eef5;
+  --accent-hover: #244b67;
+  --accent-active: #193a52;
+  --amber: #c58b5a;
+  --amber-light: #fbefe5;
+  --border: #dce8ee;
+  --border-light: #e9f0f3;
+  color-scheme: light;
+}
+
+html[data-theme-preset='midnight'] {
+  --bg-root: #121821;
+  --bg-surface: #1b2430;
+  --bg-muted: #243142;
+  --bg-hover: #2b3a4d;
+  --bg-active: #34465c;
+  --text-primary: #edf3f8;
+  --text-secondary: #aebccb;
+  --text-muted: #718091;
+  --text-on-accent: #10161f;
+  --accent: #8fb6df;
+  --accent-light: #253b53;
+  --accent-hover: #a9c8e8;
+  --accent-active: #c4dcf2;
+  --amber: #d7a85f;
+  --amber-light: #453827;
+  --success: #87bf9a;
+  --success-light: #243c2e;
+  --error: #e19083;
+  --error-light: #442b2c;
+  --border: #314052;
+  --border-light: #263445;
+  color-scheme: dark;
+}
+
+html[data-theme-preset='graphite'] {
+  --bg-root: #171817;
+  --bg-surface: #222422;
+  --bg-muted: #2d312e;
+  --bg-hover: #353a36;
+  --bg-active: #404742;
+  --text-primary: #edf0ea;
+  --text-secondary: #b4bdb3;
+  --text-muted: #7d867c;
+  --text-on-accent: #111513;
+  --accent: #9ab9ac;
+  --accent-light: #2c4038;
+  --accent-hover: #b2cec3;
+  --accent-active: #c6ded5;
+  --amber: #d0a96a;
+  --amber-light: #443a27;
+  --success: #8fc18e;
+  --success-light: #283c2a;
+  --error: #d9958a;
+  --error-light: #432c29;
+  --border: #3b413d;
+  --border-light: #303531;
+  color-scheme: dark;
+}
+
+html[data-theme-preset='plum'] {
+  --bg-root: #1d1720;
+  --bg-surface: #29212d;
+  --bg-muted: #352a3b;
+  --bg-hover: #403347;
+  --bg-active: #4b3c53;
+  --text-primary: #f2ecf5;
+  --text-secondary: #c5b6cd;
+  --text-muted: #8c7b95;
+  --text-on-accent: #1a111d;
+  --accent: #c5a6d8;
+  --accent-light: #3f3050;
+  --accent-hover: #d5bae4;
+  --accent-active: #e5d1ee;
+  --amber: #d49b86;
+  --amber-light: #47302f;
+  --success: #92c69a;
+  --success-light: #2d3d2f;
+  --error: #e18f8f;
+  --error-light: #472d31;
+  --border: #42364a;
+  --border-light: #352b3b;
+  color-scheme: dark;
+}
+
+html[data-theme-preset] {
+  --mantine-color-body: var(--bg-root);
+  --mantine-color-text: var(--text-primary);
+  --mantine-color-default: var(--bg-surface);
+  --mantine-color-default-hover: var(--bg-hover);
+  --mantine-color-default-border: var(--border);
+  --mantine-color-dimmed: var(--text-secondary);
+}
+
+.mantine-Modal-content,
+.mantine-Modal-header,
+.mantine-Popover-dropdown,
+.mantine-Select-dropdown {
+  border-color: var(--border-light) !important;
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-lg);
+}
+
+.mantine-Modal-overlay {
+  background: rgba(17, 18, 20, 0.42) !important;
+}
+
 *,
 *::before,
 *::after {
@@ -185,6 +323,51 @@ a {
   padding: 14px 16px;
 }
 
+.rich-editor-image-node {
+  display: block;
+  margin: 10px 0;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+
+.rich-editor-image-node.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.rich-editor-image-frame {
+  display: flex;
+}
+
+.rich-editor-image-frame.align-left {
+  justify-content: flex-start;
+}
+
+.rich-editor-image-frame.align-center {
+  justify-content: center;
+}
+
+.rich-editor-image-frame.align-right {
+  justify-content: flex-end;
+}
+
+.rich-editor-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.rich-editor-image-controls {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
 .page-header-sticky {
   position: sticky;
   top: 0;
@@ -220,6 +403,36 @@ a {
   border-radius: var(--radius-md);
   background: var(--bg-surface);
   box-shadow: var(--shadow-sm);
+}
+
+.surface-list-flat {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.surface-accordion {
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.surface-accordion .mantine-Accordion-item {
+  border-bottom-color: var(--border-light);
+}
+
+.surface-accordion .mantine-Accordion-control {
+  background: var(--bg-surface);
+}
+
+.surface-accordion .mantine-Accordion-control:hover {
+  background: var(--bg-hover);
+}
+
+.surface-accordion .mantine-Accordion-panel {
+  background: var(--bg-surface);
 }
 
 .question-row {
@@ -311,6 +524,42 @@ a {
   color: var(--accent);
   font-size: 0.9em;
   padding: 1px 5px;
+}
+
+.settings-section {
+  padding: 18px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.theme-preset-card {
+  width: 100%;
+  min-height: 112px;
+  padding: 14px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  transition:
+    border-color 150ms ease,
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.theme-preset-card:hover,
+.theme-preset-card.is-active {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.theme-swatch {
+  width: 30px;
+  height: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar {

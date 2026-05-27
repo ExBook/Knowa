@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Accordion,
   Badge,
   Box,
   Button,
@@ -7,8 +8,11 @@ import {
   Group,
   LoadingOverlay,
   Modal,
+  Popover,
+  Progress,
   SimpleGrid,
   Select,
+  Stack,
   TagsInput,
   Text,
   Textarea,
@@ -17,14 +21,16 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconEdit, IconFileImport, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { IconEdit, IconFileImport, IconFilter, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { quizRecordRepo } from '../../repo/quizRecordRepo';
 import { importExbank } from '../../services/importExportService';
 import { questionService } from '../../services/questionService';
-import type { Bank, Question } from '../../shared/types';
+import type { Bank, Question, QuizRecord } from '../../shared/types';
 import { useBankStore } from '../../stores/bankStore';
 import { EmptyState } from '../components/EmptyState';
+import { QuizQuestion } from '../components/QuizQuestion';
 
 function extractText(body: object): string {
   const texts: string[] = [];
@@ -60,16 +66,21 @@ export function BankListPage() {
   const [deleting, setDeleting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
+  const [allRecords, setAllRecords] = useState<QuizRecord[]>([]);
   const [searchText, setSearchText] = useState('');
   const [bankFilter, setBankFilter] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<Question['type'] | null>(null);
+  const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
 
   useEffect(() => {
     void loadBanks();
   }, [loadBanks]);
 
   useEffect(() => {
-    void questionService.getAllQuestions().then(setAllQuestions);
+    void Promise.all([questionService.getAllQuestions(), quizRecordRepo.findAll()]).then(([questions, records]) => {
+      setAllQuestions(questions);
+      setAllRecords(records);
+    });
   }, [banks.length]);
 
   const handleOpenCreate = () => {
@@ -173,6 +184,36 @@ export function BankListPage() {
           .includes(keyword))
     );
   });
+  const bankById = useMemo(() => new Map(banks.map((bank) => [bank.id, bank])), [banks]);
+  const groupedSearchResults = useMemo(
+    () =>
+      banks
+        .map((bank) => ({
+          bank,
+          questions: searchResults.filter((question) => question.bankId === bank.id),
+        }))
+        .filter((group) => group.questions.length > 0),
+    [banks, searchResults],
+  );
+  const answeredQuestionIdsByBank = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    allRecords.forEach((record) => {
+      const set = map.get(record.bankId) ?? new Set<string>();
+      set.add(record.questionId);
+      map.set(record.bankId, set);
+    });
+    return map;
+  }, [allRecords]);
+  const progressForBank = (bank: Bank) => {
+    const total = bank.questionCount || allQuestions.filter((question) => question.bankId === bank.id).length;
+    const answered = answeredQuestionIdsByBank.get(bank.id)?.size ?? 0;
+    const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
+    return { total, answered: Math.min(answered, total), percent };
+  };
+  const activeFilterCount = [bankFilter, typeFilter].filter(Boolean).length;
+  const editPreviewQuestion = (question: Question) => {
+    navigate(`/bank/${question.bankId}/editor/${question.id}?returnTo=${encodeURIComponent('/')}`);
+  };
 
   return (
     <Box>
@@ -215,54 +256,89 @@ export function BankListPage() {
             value={searchText}
             onChange={(event) => setSearchText(event.currentTarget.value)}
             leftSection={<IconSearch size={16} />}
-            style={{ minWidth: 280 }}
+            style={{ minWidth: 0, flex: '1 1 280px' }}
           />
-          <Select
-            label="题库"
-            placeholder="全部"
-            data={banks.map((bank) => ({ value: bank.id, label: bank.name }))}
-            value={bankFilter}
-            onChange={setBankFilter}
-            clearable
-            searchable
-          />
-          <Select
-            label="题型"
-            placeholder="全部"
-            data={[
-              { value: 'single', label: '单选' },
-              { value: 'multiple', label: '多选' },
-              { value: 'truefalse', label: '判断' },
-            ]}
-            value={typeFilter}
-            onChange={(value) => setTypeFilter(value as Question['type'] | null)}
-            clearable
-          />
+          <Popover position="bottom-end" shadow="md" withArrow width={280}>
+            <Popover.Target>
+              <Button variant="default" leftSection={<IconFilter size={16} />}>
+                筛选{activeFilterCount > 0 ? ` ${activeFilterCount}` : ''}
+              </Button>
+            </Popover.Target>
+            <Popover.Dropdown>
+              <Stack gap="sm">
+                <Select
+                  label="题库"
+                  placeholder="全部题库"
+                  data={banks.map((bank) => ({ value: bank.id, label: bank.name }))}
+                  value={bankFilter}
+                  onChange={setBankFilter}
+                  clearable
+                  searchable
+                />
+                <Select
+                  label="题型"
+                  placeholder="全部题型"
+                  data={[
+                    { value: 'single', label: '单选' },
+                    { value: 'multiple', label: '多选' },
+                    { value: 'truefalse', label: '判断' },
+                  ]}
+                  value={typeFilter}
+                  onChange={(value) => setTypeFilter(value as Question['type'] | null)}
+                  clearable
+                />
+                <Button
+                  variant="subtle"
+                  size="xs"
+                  onClick={() => {
+                    setBankFilter(null);
+                    setTypeFilter(null);
+                  }}
+                >
+                  清空筛选
+                </Button>
+              </Stack>
+            </Popover.Dropdown>
+          </Popover>
         </Group>
         {searchActive ? (
-          <Box className="surface-list">
+          <Box>
             {searchResults.length === 0 ? (
-              <Text p="md" c="dimmed" size="sm">
-                没有匹配的题目。
-              </Text>
+              <EmptyState title="没有匹配的题目" description="换一个关键词或筛选条件试试。" />
             ) : (
-              searchResults.map((question) => (
-                <Box key={question.id} className="question-row">
-                  <Group justify="space-between" gap="md" wrap="nowrap">
-                    <Box style={{ minWidth: 0 }}>
-                      <Text size="sm" lineClamp={1} className="question-title" onClick={() => navigate(`/bank/${question.bankId}/editor/${question.id}`)}>
-                        {extractText(question.body)}
-                      </Text>
-                      <Text size="xs" className="question-meta" lineClamp={1}>
-                        {[banks.find((bank) => bank.id === question.bankId)?.name, question.chapter, question.section, question.knowledgePoint].filter(Boolean).join(' / ')}
-                      </Text>
-                    </Box>
-                    <Button size="xs" variant="light" onClick={() => navigate(`/bank/${question.bankId}`)}>
-                      打开题库
-                    </Button>
-                  </Group>
-                </Box>
-              ))
+              <Accordion className="surface-accordion" multiple defaultValue={groupedSearchResults.slice(0, 3).map((group) => group.bank.id)}>
+                {groupedSearchResults.map(({ bank, questions: groupQuestions }) => (
+                  <Accordion.Item key={bank.id} value={bank.id}>
+                    <Accordion.Control>
+                      <Group justify="space-between" pr="md">
+                        <Text fw={600}>{bank.name}</Text>
+                        <Badge variant="light">{groupQuestions.length} 题</Badge>
+                      </Group>
+                    </Accordion.Control>
+                    <Accordion.Panel>
+                      <Box className="surface-list surface-list-flat">
+                        {groupQuestions.map((question) => (
+                          <Box key={question.id} className="question-row">
+                            <Group justify="space-between" gap="md" wrap="nowrap">
+                              <Box style={{ minWidth: 0 }}>
+                                <Text size="sm" lineClamp={1} className="question-title" onClick={() => setPreviewQuestion(question)}>
+                                  {extractText(question.body)}
+                                </Text>
+                                <Text size="xs" className="question-meta" lineClamp={1}>
+                                  {[bankById.get(question.bankId)?.name, question.chapter, question.section, question.knowledgePoint].filter(Boolean).join(' / ')}
+                                </Text>
+                              </Box>
+                              <Button size="xs" variant="light" onClick={() => navigate(`/bank/${question.bankId}`)}>
+                                打开题库
+                              </Button>
+                            </Group>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Accordion.Panel>
+                  </Accordion.Item>
+                ))}
+              </Accordion>
             )}
           </Box>
         ) : banks.length === 0 ? (
@@ -360,7 +436,26 @@ export function BankListPage() {
                   </Group>
                 )}
 
-                <Group justify="space-between" mt="auto">
+                <Box mt="auto">
+                  {(() => {
+                    const progress = progressForBank(bank);
+                    return (
+                      <Box mb="sm">
+                        <Group justify="space-between" mb={5}>
+                          <Text size="xs" c="dimmed">
+                            做题进度
+                          </Text>
+                          <Text size="xs" fw={600}>
+                            {progress.answered}/{progress.total} · {progress.percent}%
+                          </Text>
+                        </Group>
+                        <Progress value={progress.percent} radius="xl" size="sm" color="slate" />
+                      </Box>
+                    );
+                  })()}
+                </Box>
+
+                <Group justify="space-between">
                   {statusBadge(bank)}
                   <Text size="xs" c="dimmed">
                     {new Date(bank.updatedAt).toLocaleDateString('zh-CN')}
@@ -413,6 +508,25 @@ export function BankListPage() {
             删除
           </Button>
         </Group>
+      </Modal>
+
+      <Modal opened={previewQuestion !== null} onClose={() => setPreviewQuestion(null)} title="题目预览" size="lg">
+        {previewQuestion && (
+          <Stack gap="md">
+            <Text size="sm" c="dimmed">
+              搜索结果仅支持预览；需要调整题目时，请从下方按钮进入题库编辑页。
+            </Text>
+            <QuizQuestion question={previewQuestion} selectedAnswer={[]} onSelect={() => undefined} showResult readOnly showNotes={false} />
+            <Group justify="flex-end">
+              <Button variant="default" onClick={() => setPreviewQuestion(null)}>
+                关闭
+              </Button>
+              <Button leftSection={<IconEdit size={16} />} onClick={() => editPreviewQuestion(previewQuestion)}>
+                修改题目
+              </Button>
+            </Group>
+          </Stack>
+        )}
       </Modal>
     </Box>
   );
