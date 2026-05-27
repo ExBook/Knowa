@@ -269,7 +269,7 @@ export function QuizPage() {
         background: 'var(--bg-root)',
       }}
     >
-      <Box style={{ borderBottom: '1px solid var(--border-light)', padding: '12px 24px', background: 'var(--bg-surface)' }}>
+      <Box className="quiz-topbar">
         <Group justify="space-between" gap="md" wrap="nowrap">
           <Group gap="xs" wrap="nowrap">
             <Button variant="subtle" px="xs" aria-label="返回题库" onClick={() => navigate(`/bank/${id}`)}>
@@ -295,7 +295,7 @@ export function QuizPage() {
       </Box>
 
       <Box p="xl" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-        <Box style={{ maxWidth: 1040, margin: '0 auto', minWidth: 0 }}>
+        <Box className="quiz-paper">
           {currentQuestion ? (
             <QuizQuestion
               question={currentQuestion}
@@ -311,16 +311,7 @@ export function QuizPage() {
         </Box>
       </Box>
 
-      <Box
-        style={{
-          position: 'sticky',
-          bottom: 0,
-          zIndex: 5,
-          background: 'var(--bg-surface)',
-          borderTop: '1px solid var(--border-light)',
-          padding: '12px 24px',
-        }}
-      >
+      <Box className="quiz-bottom-nav">
         <Group justify="space-between" gap="sm" wrap="nowrap">
           <Button variant="default" disabled={currentIndex === 0} onClick={() => store.prevQuestion()}>
             上一题

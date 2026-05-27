@@ -149,9 +149,9 @@ export function WrongRecordsPage() {
   };
 
   return (
-    <Box p="xl" pos="relative">
+    <Box pos="relative">
       <LoadingOverlay visible={loading} />
-      <Group justify="space-between" mb="lg">
+      <Group className="page-header-sticky" justify="space-between">
         <Box>
           <Title order={2}>错题记录</Title>
           <Text size="sm" c="dimmed">
@@ -170,20 +170,23 @@ export function WrongRecordsPage() {
           重做选中
         </Button>
       </Group>
-      <TextInput
-        mb="md"
-        placeholder="搜索错题、标签、章节或题库"
-        value={searchText}
-        onChange={(event) => setSearchText(event.currentTarget.value)}
-        leftSection={<IconSearch size={16} />}
-      />
+      <Box className="page-body">
+        <Box className="page-toolbar">
+          <TextInput
+            placeholder="搜索错题、标签、章节或题库"
+            value={searchText}
+            onChange={(event) => setSearchText(event.currentTarget.value)}
+            leftSection={<IconSearch size={16} />}
+            style={{ minWidth: 320 }}
+          />
+        </Box>
 
       {wrongQuestions.length === 0 ? (
         <EmptyState title="还没有错题" description="做题后，答错的题会出现在这里。" />
       ) : (
         <Stack gap="md">
           {grouped.map(([groupName, groupQuestions]) => (
-            <Box key={groupName} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
+            <Box key={groupName} className="surface-list">
               <Group justify="space-between" px="md" py="sm" style={{ borderBottom: '1px solid var(--border-light)' }}>
                 <Group gap="sm">
                   <Checkbox
@@ -198,11 +201,8 @@ export function WrongRecordsPage() {
                   {groupQuestions.length} 题
                 </Badge>
               </Group>
-              {groupQuestions.map((question, index) => (
-                <Box
-                  key={question.id}
-                  style={{ padding: '14px 16px', borderBottom: index === groupQuestions.length - 1 ? 'none' : '1px solid var(--border-light)' }}
-                >
+              {groupQuestions.map((question) => (
+                <Box key={question.id} className="question-row">
                   <Group justify="space-between" gap="md" wrap="nowrap">
                     <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
                       <Checkbox checked={selectedIds.has(question.id)} onChange={() => toggleSelected(question.id)} aria-label="选择题目" />
@@ -210,12 +210,12 @@ export function WrongRecordsPage() {
                         <Text
                           size="sm"
                           lineClamp={1}
-                          style={{ maxWidth: 760, cursor: 'pointer' }}
+                          className="question-title"
                           onClick={() => setPreviewQuestion(question)}
                         >
                           {extractText(question.body)}
                         </Text>
-                        <Text size="xs" c="dimmed" lineClamp={1}>
+                        <Text size="xs" className="question-meta" lineClamp={1}>
                           {[bankName(question.bankId), question.chapter, question.section, question.knowledgePoint].filter(Boolean).join(' / ')}
                         </Text>
                       </Box>
@@ -237,6 +237,7 @@ export function WrongRecordsPage() {
           ))}
         </Stack>
       )}
+      </Box>
       <Modal opened={previewQuestion !== null} onClose={() => setPreviewQuestion(null)} title="题目预览" size="lg">
         {previewQuestion && (
           <Stack gap="md">

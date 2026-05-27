@@ -365,7 +365,7 @@ export function BankDetailPage() {
         </Group>
       </Box>
 
-      <Box p="xl" pos="relative">
+      <Box className="page-body" pos="relative">
         <LoadingOverlay visible={loading} />
         <Tabs defaultValue="list">
           <Tabs.List>
@@ -374,7 +374,7 @@ export function BankDetailPage() {
           </Tabs.List>
 
           <Tabs.Panel value="list" pt="lg">
-            <Group mb="md" align="flex-end">
+            <Group className="page-toolbar">
               <Button leftSection={<IconPlus size={16} />} onClick={() => navigate(`/bank/${id}/editor/new`)}>
                 添加题目
               </Button>
@@ -443,19 +443,19 @@ export function BankDetailPage() {
             ) : filteredQuestions.length === 0 ? (
               <EmptyState title="没有匹配的题目" description="换一个章、节或知识点筛选条件试试。" />
             ) : (
-              <Box style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
-                {filteredQuestions.map((question, index) => (
-                  <Box key={question.id} style={{ padding: '14px 16px', borderBottom: index === filteredQuestions.length - 1 ? 'none' : '1px solid var(--border-light)' }}>
+              <Box className="surface-list">
+                {filteredQuestions.map((question) => (
+                  <Box key={question.id} className="question-row">
                     <Group justify="space-between" gap="md" wrap="nowrap">
                       <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
                         <Badge variant="light" size="sm">
                           {question.order}
                         </Badge>
                         <Box style={{ minWidth: 0 }}>
-                          <Text size="sm" lineClamp={1} style={{ maxWidth: 460 }}>
+                          <Text size="sm" lineClamp={1} className="question-title">
                             {extractText(question.body)}
                           </Text>
-                          <Group gap={6} mt={4}>
+                          <Group className="question-meta">
                             {metaText(question) && (
                               <Text size="xs" c="dimmed" lineClamp={1}>
                                 {metaText(question)}

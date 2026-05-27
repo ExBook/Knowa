@@ -126,7 +126,7 @@ export function QuestionEditorPage() {
 
   return (
     <Box>
-      <Box style={{ borderBottom: '1px solid var(--border-light)', padding: '16px 24px', background: 'var(--bg-surface)' }}>
+      <Box className="page-header-sticky">
         <Group justify="space-between" align="center">
           <Group gap="sm">
             <ActionIcon variant="subtle" onClick={() => navigate(returnTo)} aria-label="返回">
@@ -147,9 +147,9 @@ export function QuestionEditorPage() {
         </Group>
       </Box>
 
-      <Box p="xl" maw={1120}>
+      <Box className="page-body">
         <Stack gap="lg">
-          <Group align="flex-end">
+          <Group className="page-toolbar">
             <Select
               label="题型"
               data={[
@@ -164,7 +164,7 @@ export function QuestionEditorPage() {
             <TagsInput label="标签" placeholder="添加标签后按回车" value={tags} onChange={setTags} style={{ flex: 1 }} />
           </Group>
 
-          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+          <SimpleGrid className="editor-section" cols={{ base: 1, sm: 3 }} spacing="md">
             <TextInput label="章" placeholder="例如 第一章 集合" value={chapter} onChange={(event) => setChapter(event.currentTarget.value)} />
             <TextInput label="节" placeholder="例如 1.2 函数" value={section} onChange={(event) => setSection(event.currentTarget.value)} />
             <TextInput
@@ -175,7 +175,7 @@ export function QuestionEditorPage() {
             />
           </SimpleGrid>
 
-          <Box>
+          <Box className="editor-section">
             <Text size="sm" fw={500} mb={6}>
               题目内容
             </Text>
@@ -195,7 +195,7 @@ export function QuestionEditorPage() {
               </Button>
             </Group>
           ) : (
-            <Box>
+            <Box className="editor-section">
               <Group justify="space-between" mb="sm">
                 <Text size="sm" fw={500}>
                   选项
@@ -236,7 +236,7 @@ export function QuestionEditorPage() {
             </Box>
           )}
 
-          <Box>
+          <Box className="editor-section">
             <Text size="sm" fw={500} mb={6}>
               解析
             </Text>

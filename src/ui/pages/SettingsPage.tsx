@@ -29,13 +29,15 @@ export function SettingsPage() {
   };
 
   return (
-    <Box p="xl">
-      <Title order={2}>设置</Title>
-      <Text size="sm" c="dimmed" mt={4} mb="xl">
-        管理本地数据保存策略和桌面端预留能力。
-      </Text>
+    <Box>
+      <Box className="page-header-sticky">
+        <Title order={2}>设置</Title>
+        <Text size="sm" c="dimmed" mt={4}>
+          管理本地数据保存策略和桌面端预留能力。
+        </Text>
+      </Box>
 
-      <Box style={{ maxWidth: 720 }}>
+      <Box className="page-body" style={{ maxWidth: 760 }}>
         <Stack gap="md">
           <Box style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: 18 }}>
             <Text fw={600} mb="sm">

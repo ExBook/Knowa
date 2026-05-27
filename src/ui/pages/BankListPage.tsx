@@ -206,9 +206,9 @@ export function BankListPage() {
         </Group>
       </Box>
 
-      <Box p="xl" pos="relative">
+      <Box className="page-body" pos="relative">
         <LoadingOverlay visible={loading} />
-        <Group mb="md" align="flex-end">
+        <Group className="page-toolbar">
           <TextInput
             label="全局搜题"
             placeholder="题干 / 标签 / 章节 / 题库"
@@ -240,20 +240,20 @@ export function BankListPage() {
           />
         </Group>
         {searchActive ? (
-          <Box style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
+          <Box className="surface-list">
             {searchResults.length === 0 ? (
               <Text p="md" c="dimmed" size="sm">
                 没有匹配的题目。
               </Text>
             ) : (
-              searchResults.map((question, index) => (
-                <Box key={question.id} p="md" style={{ borderBottom: index === searchResults.length - 1 ? 'none' : '1px solid var(--border-light)' }}>
+              searchResults.map((question) => (
+                <Box key={question.id} className="question-row">
                   <Group justify="space-between" gap="md" wrap="nowrap">
                     <Box style={{ minWidth: 0 }}>
-                      <Text size="sm" lineClamp={1} style={{ cursor: 'pointer' }} onClick={() => navigate(`/bank/${question.bankId}/editor/${question.id}`)}>
+                      <Text size="sm" lineClamp={1} className="question-title" onClick={() => navigate(`/bank/${question.bankId}/editor/${question.id}`)}>
                         {extractText(question.body)}
                       </Text>
-                      <Text size="xs" c="dimmed" lineClamp={1}>
+                      <Text size="xs" className="question-meta" lineClamp={1}>
                         {[banks.find((bank) => bank.id === question.bankId)?.name, question.chapter, question.section, question.knowledgePoint].filter(Boolean).join(' / ')}
                       </Text>
                     </Box>
