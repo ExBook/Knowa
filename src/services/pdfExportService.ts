@@ -31,13 +31,16 @@ let cjkFontReady = false;
 const cjkFontFile = 'NotoSansCJKsc-Regular.otf';
 const cjkFontFamily = 'NotoSansCJKsc';
 
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  const chunks: string[] = [];
-  for (let index = 0; index < bytes.length; index += 8192) {
-    chunks.push(String.fromCharCode(...bytes.slice(index, index + 8192)));
-  }
-  return btoa(chunks.join(''));
+function arrayBufferToBase64(buffer: ArrayBuffer): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      resolve(result.split(',')[1] ?? '');
+    });
+    reader.addEventListener('error', () => reject(reader.error ?? new Error('Unable to read font file')));
+    reader.readAsDataURL(new Blob([buffer]));
+  });
 }
 
 export async function initCJKFont(): Promise<void> {
@@ -52,7 +55,7 @@ export async function initCJKFont(): Promise<void> {
     }
 
     const buffer = await response.arrayBuffer();
-    pdf.addVirtualFileSystem({ [cjkFontFile]: arrayBufferToBase64(buffer) });
+    pdf.addVirtualFileSystem({ [cjkFontFile]: await arrayBufferToBase64(buffer) });
     pdf.addFonts({
       [cjkFontFamily]: {
         normal: cjkFontFile,
@@ -74,8 +77,24 @@ type RichNode = {
   content?: RichNode[];
 };
 
+export function normalizePdfTextForLayout(text: string): string {
+  return text.replace(/[^\s]{48,}/gu, (run) => {
+    const chars = Array.from(run);
+    const chunks: string[] = [];
+    for (let index = 0; index < chars.length; index += 36) {
+      chunks.push(chars.slice(index, index + 36).join(''));
+    }
+    return chunks.join('\u200B');
+  });
+}
+
+function imageText(attrs: RichNode['attrs']): string {
+  const alt = attrs?.alt?.trim();
+  return alt ? `[图片: ${normalizePdfTextForLayout(alt)}]` : '[图片]';
+}
+
 function inlineToText(nodes: RichNode[] | undefined): string {
-  return (
+  return normalizePdfTextForLayout(
     nodes
       ?.map((node) => {
         if (node.type === 'mathInline') {
@@ -83,7 +102,7 @@ function inlineToText(nodes: RichNode[] | undefined): string {
         }
         return node.text ?? '';
       })
-      .join('') ?? ''
+      .join('') ?? '',
   );
 }
 
@@ -102,7 +121,7 @@ function tipTapToText(doc: unknown): string {
         return inlineToText(node.content);
       }
       if (node.type === 'image') {
-        return `[图片: ${node.attrs?.alt || node.attrs?.src || ''}]`;
+        return imageText(node.attrs);
       }
       return '';
     })
@@ -228,10 +247,29 @@ export async function generatePrecisePDF(questions: QuestionData[], options: Exp
   const font = cjkFontReady ? cjkFontFamily : 'Roboto';
   return pdf.createPdf({
     pageSize: 'A4',
-    pageMargins: [46, 48, 46, 48],
+    pageMargins: [42, 64, 42, 54],
+    header: () => ({
+      margin: [42, 22, 42, 0],
+      columns: [
+        {
+          text: [
+            { text: 'ExLocal', bold: true, color: '#3b4b6b' },
+            { text: '  搭建你的个人题库', fontSize: 8, color: '#7a7568' },
+          ],
+        },
+        { text: options.bankName, alignment: 'right', fontSize: 8, color: '#7a7568' },
+      ],
+    }),
+    footer: (currentPage: number, pageCount: number) => ({
+      margin: [42, 0, 42, 22],
+      columns: [
+        { text: `ExLocal · ${options.bankName}`, fontSize: 8, color: '#a8a294' },
+        { text: `${currentPage} / ${pageCount}`, alignment: 'right', fontSize: 8, color: '#a8a294' },
+      ],
+    }),
     content,
     styles: {
-      title: { fontSize: 22, bold: true, alignment: 'center', lineHeight: 1.25 },
+      title: { fontSize: 20, bold: true, alignment: 'center', lineHeight: 1.15 },
       subtitle: { fontSize: 10, color: '#7a7568', alignment: 'center' },
       statText: { fontSize: 10, alignment: 'center' },
       statsBox: { fillColor: '#f3efe8', fillOpacity: 1 },
@@ -240,7 +278,7 @@ export async function generatePrecisePDF(questions: QuestionData[], options: Exp
       font,
       fontSize: 11,
       color: '#2c2416',
-      lineHeight: 1.5,
+      lineHeight: 1.28,
     },
   }).getBlob();
 }
@@ -252,13 +290,48 @@ export async function generateQuickPDF(element: HTMLElement, filename: string): 
     backgroundColor: '#ffffff',
   });
 
-  const imgData = canvas.toDataURL('image/png');
   const document = new jsPDF({
-    orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+    orientation: 'portrait',
     unit: 'px',
-    format: [canvas.width / 2, canvas.height / 2],
+    format: 'a4',
   });
 
-  document.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+  const pageWidth = document.internal.pageSize.getWidth();
+  const pageHeight = document.internal.pageSize.getHeight();
+  const margin = 28;
+  const headerHeight = 34;
+  const footerHeight = 24;
+  const contentWidth = pageWidth - margin * 2;
+  const contentHeight = pageHeight - margin * 2 - headerHeight - footerHeight;
+  const scale = contentWidth / canvas.width;
+  const sliceHeight = Math.floor(contentHeight / scale);
+  const pageCount = Math.max(1, Math.ceil(canvas.height / sliceHeight));
+
+  for (let page = 0; page < pageCount; page += 1) {
+    if (page > 0) {
+      document.addPage();
+    }
+
+    document.setFontSize(11);
+    document.setTextColor(59, 75, 107);
+    document.text('ExLocal', margin, margin);
+    document.setFontSize(8);
+    document.setTextColor(122, 117, 104);
+    document.text('搭建你的个人题库', margin + 52, margin);
+
+    const sourceY = page * sliceHeight;
+    const pageCanvas = window.document.createElement('canvas');
+    pageCanvas.width = canvas.width;
+    pageCanvas.height = Math.min(sliceHeight, canvas.height - sourceY);
+    const context = pageCanvas.getContext('2d');
+    context?.drawImage(canvas, 0, sourceY, canvas.width, pageCanvas.height, 0, 0, canvas.width, pageCanvas.height);
+    document.addImage(pageCanvas.toDataURL('image/png'), 'PNG', margin, margin + headerHeight, contentWidth, pageCanvas.height * scale);
+
+    document.setFontSize(8);
+    document.setTextColor(168, 162, 148);
+    document.text(`ExLocal · ${filename}`, margin, pageHeight - margin + 6);
+    document.text(`${page + 1} / ${pageCount}`, pageWidth - margin, pageHeight - margin + 6, { align: 'right' });
+  }
+
   document.save(`${filename}.pdf`);
 }

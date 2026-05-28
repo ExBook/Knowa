@@ -1,8 +1,20 @@
-import { Badge, Box, Button, Group, SimpleGrid, Stack, Switch, Text, TextInput, Title, UnstyledButton, useMantineColorScheme } from '@mantine/core';
+import { Badge, Box, Button, Group, NumberInput, Select, SimpleGrid, Stack, Switch, Text, TextInput, Title, UnstyledButton, useMantineColorScheme } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconDownload, IconFolder, IconRefresh, IconUpload } from '@tabler/icons-react';
-import { useState } from 'react';
-import { getAppSettings, saveAppSettings, themePresetColorScheme, type AppSettings, type ThemePreset } from '../../services/appSettings';
+import { useEffect, useState, type CSSProperties } from 'react';
+import {
+  applyQuizFontStyle,
+  getAppSettings,
+  getQuizFontFamily,
+  getQuizFontStyle,
+  quizFontStyleOptions,
+  saveAppSettings,
+  subscribeAppSettings,
+  themePresetColorScheme,
+  themePresetOptions,
+  type AppSettings,
+  type QuizFontStyle,
+} from '../../services/appSettings';
 import { exportFullDataToFile, importFullDataFromFile } from '../../services/fullDataBackupService';
 import {
   clearPreferredLocalDataDirectory,
@@ -10,20 +22,6 @@ import {
   setPreferredLocalDataDirectory,
   type LocalDataDirectoryState,
 } from '../../services/localDataDirectory';
-
-const themePresets: Array<{
-  value: ThemePreset;
-  label: string;
-  description: string;
-  swatches: string[];
-}> = [
-  { value: 'warm', label: '温润学术', description: '奶油纸面、靛蓝强调', swatches: ['#faf7f2', '#ffffff', '#3b4b6b', '#c4823d'] },
-  { value: 'sage', label: '青榆书桌', description: '浅青底色、墨绿强调', swatches: ['#f5f7f0', '#ffffff', '#466655', '#b88a55'] },
-  { value: 'porcelain', label: '瓷白清晨', description: '冷白留白、海蓝强调', swatches: ['#f7fafb', '#ffffff', '#2f5d7c', '#c58b5a'] },
-  { value: 'midnight', label: '夜读蓝调', description: '深墨蓝、柔和高亮', swatches: ['#121821', '#1b2430', '#8fb6df', '#d7a85f'] },
-  { value: 'graphite', label: '石墨专注', description: '中性深灰、青绿点缀', swatches: ['#171817', '#222422', '#9ab9ac', '#d0a96a'] },
-  { value: 'plum', label: '梅影夜色', description: '深紫灰、玫瑰金点缀', swatches: ['#1d1720', '#29212d', '#c5a6d8', '#d49b86'] },
-];
 
 export function SettingsPage() {
   const [directoryState, setDirectoryState] = useState<LocalDataDirectoryState>(() => getLocalDataDirectory());
@@ -43,7 +41,15 @@ export function SettingsPage() {
     setDraftDirectory(next.directory);
   };
 
-  const updateSettings = (next: AppSettings) => {
+  useEffect(() => {
+    return subscribeAppSettings((next) => {
+      setColorScheme(themePresetColorScheme(next.themePreset));
+      setSettings(next);
+    });
+  }, [setColorScheme]);
+
+  const updateSettings = (updater: (current: AppSettings) => AppSettings) => {
+    const next = updater(getAppSettings());
     setColorScheme(themePresetColorScheme(next.themePreset));
     setSettings(saveAppSettings(next));
   };
@@ -98,11 +104,11 @@ export function SettingsPage() {
               主题风格
             </Text>
             <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="sm">
-              {themePresets.map((preset) => (
+              {themePresetOptions.map((preset) => (
                 <UnstyledButton
                   key={preset.value}
                   className={`theme-preset-card ${settings.themePreset === preset.value ? 'is-active' : ''}`}
-                  onClick={() => updateSettings({ ...settings, themePreset: preset.value })}
+                  onClick={() => updateSettings((current) => ({ ...current, themePreset: preset.value }))}
                 >
                   <Group justify="space-between" align="flex-start" wrap="nowrap">
                     <Box>
@@ -129,6 +135,46 @@ export function SettingsPage() {
             </SimpleGrid>
           </Box>
 
+          <Box className="settings-section">
+            <Text fw={600} mb="sm">
+              刷题阅读字体
+            </Text>
+            <Text size="sm" c="dimmed" mb="md">
+              会应用到刷题页题干、选项、解析和回顾内容；刷题页右上角也可以临时调整并保存。
+            </Text>
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+              <Select
+                label="字体风格"
+                data={quizFontStyleOptions.map((item) => ({ value: item.value, label: item.label }))}
+                value={getQuizFontStyle(settings)}
+                onChange={(value) => updateSettings((current) => applyQuizFontStyle(current, (value ?? 'academic') as QuizFontStyle))}
+              />
+              <NumberInput
+                label="字号"
+                min={14}
+                max={22}
+                step={1}
+                suffix=" px"
+                value={settings.quizFontSize}
+                onChange={(value) => updateSettings((current) => ({ ...current, quizFontSize: Number(value) || 16 }))}
+              />
+            </SimpleGrid>
+            <Box
+              className="quiz-font-preview"
+              mt="md"
+              style={{
+                '--quiz-font-family': getQuizFontFamily(settings),
+                '--quiz-font-size': `${settings.quizFontSize}px`,
+              } as CSSProperties}
+            >
+              <Text size="xs" c="dimmed" mb={6}>
+                预览
+              </Text>
+              <Text className="quiz-font-preview-title">ExLocal Academic Preview</Text>
+              <Text className="quiz-font-preview-body">搭建你的个人题库：函数、导数与概率统计 A/B/C/D。</Text>
+            </Box>
+          </Box>
+
           <Box style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: 18 }}>
             <Text fw={600} mb="sm">
               做题记录
@@ -138,13 +184,13 @@ export function SettingsPage() {
                 label="做错题后自动收藏"
                 description="默认关闭；打开后，提交错误答案会自动把题目加入收藏。"
                 checked={settings.autoFavoriteWrong}
-                onChange={(event) => updateSettings({ ...settings, autoFavoriteWrong: event.currentTarget.checked })}
+                onChange={(event) => updateSettings((current) => ({ ...current, autoFavoriteWrong: event.currentTarget.checked }))}
               />
               <Switch
                 label="错题重做正确后移出错题记录"
                 description="默认开启；关闭后，只要曾经做错过，就会保留在错题记录中。"
                 checked={settings.removeWrongWhenCorrect}
-                onChange={(event) => updateSettings({ ...settings, removeWrongWhenCorrect: event.currentTarget.checked })}
+                onChange={(event) => updateSettings((current) => ({ ...current, removeWrongWhenCorrect: event.currentTarget.checked }))}
               />
             </Stack>
           </Box>
@@ -165,7 +211,7 @@ export function SettingsPage() {
                 <input
                   type="file"
                   hidden
-                  accept=".json,.exlocal.json,application/json"
+                  accept=".exlocal,.json,.exlocal.json,application/json,application/zip"
                   onChange={(event) => {
                     void handleImportAllData(event.currentTarget.files);
                     event.currentTarget.value = '';

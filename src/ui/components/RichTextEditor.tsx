@@ -12,11 +12,12 @@ import { Table } from '@tiptap/extension-table';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TableRow from '@tiptap/extension-table-row';
+import { NodeSelection } from '@tiptap/pm/state';
 import { NodeViewWrapper, ReactNodeViewRenderer, useEditor, type NodeViewProps } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import katex from 'katex';
 import { common, createLowlight } from 'lowlight';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type KeyboardEvent } from 'react';
 
 const lowlight = createLowlight(common);
 
@@ -55,19 +56,45 @@ function MathBlockView({ node }: NodeViewProps) {
   );
 }
 
-function ImageView({ node, selected, updateAttributes }: NodeViewProps) {
+function ImageView({ editor, getPos, node, selected, updateAttributes }: NodeViewProps) {
   const src = String(node.attrs.src ?? '');
   const alt = String(node.attrs.alt ?? '');
   const width = Number(node.attrs.width ?? 60);
   const align = String(node.attrs.align ?? 'center') as 'left' | 'center' | 'right';
+  const selectImage = () => {
+    if (typeof getPos !== 'function') {
+      return;
+    }
+
+    const pos = getPos();
+    if (typeof pos !== 'number') {
+      return;
+    }
+
+    const transaction = editor.view.state.tr.setSelection(NodeSelection.create(editor.view.state.doc, pos));
+    editor.view.dispatch(transaction);
+    editor.view.focus();
+  };
 
   return (
-    <NodeViewWrapper className={`rich-editor-image-node ${selected ? 'is-selected' : ''}`} contentEditable={false}>
+    <NodeViewWrapper
+      className={`rich-editor-image-node ${selected ? 'is-selected' : ''}`}
+      contentEditable={false}
+      role="button"
+      tabIndex={0}
+      onClick={selectImage}
+      onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          selectImage();
+        }
+      }}
+    >
       <Box className={`rich-editor-image-frame align-${align}`}>
         <img src={src} alt={alt} className="rich-editor-image" style={{ width: `${width}%` }} />
       </Box>
       {selected && (
-        <Box className="rich-editor-image-controls">
+        <Box className="rich-editor-image-controls" onClick={(event) => event.stopPropagation()}>
           <Group gap="xs" wrap="nowrap" align="center">
             <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
               图片

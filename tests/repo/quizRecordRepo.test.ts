@@ -131,4 +131,57 @@ describe('quizRecordRepo', () => {
     expect(stats.accuracy).toBe(0.5);
     expect(stats.totalDuration).toBe(30);
   });
+
+  it('deletes all records for a bank and reports the deleted count', async () => {
+    const bank = await bankRepo.create({ name: 't5', description: '', tags: [] });
+    const otherBank = await bankRepo.create({ name: 't6', description: '', tags: [] });
+    const q = await questionRepo.create({
+      bankId: bank.id,
+      type: 'single',
+      body: emptyDoc,
+      options: [{ index: 0, content: emptyDoc }],
+      answer: [0],
+      explanation: emptyDoc,
+      tags: [],
+    });
+    const otherQ = await questionRepo.create({
+      bankId: otherBank.id,
+      type: 'single',
+      body: emptyDoc,
+      options: [{ index: 0, content: emptyDoc }],
+      answer: [0],
+      explanation: emptyDoc,
+      tags: [],
+    });
+    await quizRecordRepo.create({
+      questionId: q.id,
+      bankId: bank.id,
+      selectedAnswer: [0],
+      isCorrect: true,
+      duration: 10,
+      mode: 'practice',
+    });
+    await quizRecordRepo.create({
+      questionId: q.id,
+      bankId: bank.id,
+      selectedAnswer: [1],
+      isCorrect: false,
+      duration: 20,
+      mode: 'practice',
+    });
+    await quizRecordRepo.create({
+      questionId: otherQ.id,
+      bankId: otherBank.id,
+      selectedAnswer: [0],
+      isCorrect: true,
+      duration: 30,
+      mode: 'practice',
+    });
+
+    const deletedCount = await quizRecordRepo.deleteByBankId(bank.id);
+
+    await expect(quizRecordRepo.findByBankId(bank.id)).resolves.toHaveLength(0);
+    await expect(quizRecordRepo.findByBankId(otherBank.id)).resolves.toHaveLength(1);
+    expect(deletedCount).toBe(2);
+  });
 });

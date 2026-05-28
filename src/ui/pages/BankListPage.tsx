@@ -22,7 +22,7 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconEdit, IconFileImport, IconFilter, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { quizRecordRepo } from '../../repo/quizRecordRepo';
 import { importExbank } from '../../services/importExportService';
@@ -30,7 +30,21 @@ import { questionService } from '../../services/questionService';
 import type { Bank, Question, QuizRecord } from '../../shared/types';
 import { useBankStore } from '../../stores/bankStore';
 import { EmptyState } from '../components/EmptyState';
-import { QuizQuestion } from '../components/QuizQuestion';
+import { QuestionPreviewModal } from '../components/QuestionPreviewModal';
+
+const bankColorPalette: Array<{ label: string; value: string }> = [
+  { label: '无颜色', value: '' },
+  { label: '杏仁', value: '#fff7e8' },
+  { label: '丁香', value: '#f3f0ff' },
+  { label: '青瓷', value: '#eaf7ef' },
+  { label: '湖蓝', value: '#e9f4ff' },
+  { label: '浅绯', value: '#fff0f0' },
+  { label: '亚麻', value: '#f6f3ea' },
+  { label: '薄荷', value: '#edf7f6' },
+  { label: '蔷薇', value: '#f8edf5' },
+  { label: '雾蓝', value: '#eef2ff' },
+  { label: '嫩芽', value: '#f1f7e8' },
+];
 
 function extractText(body: object): string {
   const texts: string[] = [];
@@ -61,6 +75,7 @@ export function BankListPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState<string[]>([]);
+  const [color, setColor] = useState('');
   const [saving, setSaving] = useState(false);
   const [deletingBank, setDeletingBank] = useState<Bank | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -88,6 +103,7 @@ export function BankListPage() {
     setName('');
     setDescription('');
     setTags([]);
+    setColor('');
     open();
   };
 
@@ -96,6 +112,7 @@ export function BankListPage() {
     setName(bank.name);
     setDescription(bank.description);
     setTags(bank.tags);
+    setColor(bank.color ?? '');
     open();
   };
 
@@ -103,9 +120,9 @@ export function BankListPage() {
     setSaving(true);
     try {
       if (editingBank) {
-        await updateBank(editingBank.id, { name, description, tags });
+        await updateBank(editingBank.id, { name, description, tags, color: color || undefined });
       } else {
-        await createBank({ name, description, tags });
+        await createBank({ name, description, tags, color: color || undefined });
       }
       close();
     } catch (error) {
@@ -318,10 +335,19 @@ export function BankListPage() {
                     <Accordion.Panel>
                       <Box className="surface-list surface-list-flat">
                         {groupQuestions.map((question) => (
-                          <Box key={question.id} className="question-row">
-                            <Group justify="space-between" gap="md" wrap="nowrap">
-                              <Box style={{ minWidth: 0 }}>
-                                <Text size="sm" lineClamp={1} className="question-title" onClick={() => setPreviewQuestion(question)}>
+                          <Box
+                            key={question.id}
+                            className="question-row question-row-clickable"
+                            onClick={(event) => {
+                              if ((event.target as HTMLElement).closest('button')) {
+                                return;
+                              }
+                              setPreviewQuestion(question);
+                            }}
+                          >
+                            <Group justify="space-between" gap="md" wrap="wrap">
+                              <Box style={{ minWidth: 0, flex: '1 1 240px' }}>
+                                <Text size="sm" lineClamp={1} className="question-title">
                                   {extractText(question.body)}
                                 </Text>
                                 <Text size="xs" className="question-meta" lineClamp={1}>
@@ -366,16 +392,16 @@ export function BankListPage() {
             {banks.map((bank) => (
               <Card
                 key={bank.id}
+                className={`bank-card ${bank.color ? 'bank-card-colored' : ''}`}
                 padding="lg"
                 radius="md"
                 withBorder
                 style={{
+                  '--bank-card-color': bank.color ?? '',
                   minHeight: 150,
-                  borderColor: 'var(--border-light)',
-                  background: 'var(--bg-surface)',
                   boxShadow: 'var(--shadow-sm)',
                   transition: 'transform 150ms ease, box-shadow 150ms ease',
-                }}
+                } as CSSProperties}
                 onMouseEnter={(event) => {
                   event.currentTarget.style.transform = 'translateY(-2px)';
                   event.currentTarget.style.boxShadow = 'var(--shadow-md)';
@@ -486,6 +512,22 @@ export function BankListPage() {
           minRows={2}
         />
         <TagsInput label="标签" placeholder="添加标签后按回车" value={tags} onChange={setTags} mb="md" />
+        <Text size="sm" fw={500} mb="xs">
+          卡片颜色
+        </Text>
+        <Group gap="xs" mb="md">
+          {bankColorPalette.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={`bank-color-swatch ${item.value ? '' : 'is-empty'} ${color === item.value ? 'is-active' : ''}`}
+              style={item.value ? { background: item.value } : undefined}
+              aria-label={item.label}
+              title={item.label}
+              onClick={() => setColor(item.value)}
+            />
+          ))}
+        </Group>
         <Group justify="flex-end" mt="lg">
           <Button variant="default" onClick={close}>
             取消
@@ -510,24 +552,13 @@ export function BankListPage() {
         </Group>
       </Modal>
 
-      <Modal opened={previewQuestion !== null} onClose={() => setPreviewQuestion(null)} title="题目预览" size="lg">
-        {previewQuestion && (
-          <Stack gap="md">
-            <Text size="sm" c="dimmed">
-              搜索结果仅支持预览；需要调整题目时，请从下方按钮进入题库编辑页。
-            </Text>
-            <QuizQuestion question={previewQuestion} selectedAnswer={[]} onSelect={() => undefined} showResult readOnly showNotes={false} />
-            <Group justify="flex-end">
-              <Button variant="default" onClick={() => setPreviewQuestion(null)}>
-                关闭
-              </Button>
-              <Button leftSection={<IconEdit size={16} />} onClick={() => editPreviewQuestion(previewQuestion)}>
-                修改题目
-              </Button>
-            </Group>
-          </Stack>
-        )}
-      </Modal>
+      <QuestionPreviewModal
+        opened={previewQuestion !== null}
+        question={previewQuestion}
+        onClose={() => setPreviewQuestion(null)}
+        onEdit={editPreviewQuestion}
+        note="搜索结果仅支持预览；需要调整题目时，请从下方按钮进入题库编辑页。"
+      />
     </Box>
   );
 }

@@ -245,16 +245,24 @@ export function ExportPage() {
                 background: 'white',
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-md)',
-                padding: 24,
+                padding: 20,
                 minHeight: 400,
                 maxHeight: 600,
                 overflow: 'auto',
                 fontFamily: 'Geist, sans-serif',
-                fontSize: 12,
-                lineHeight: 1.8,
+                fontSize: 11,
+                lineHeight: 1.55,
                 color: '#2c2416',
               }}
             >
+              <Group justify="space-between" mb="md" style={{ borderBottom: '1px solid #e5e0d5', paddingBottom: 10 }}>
+                <Text fw={800} c="#3b4b6b">
+                  ExLocal
+                </Text>
+                <Text size="xs" c="dimmed">
+                  搭建你的个人题库
+                </Text>
+              </Group>
               <Title order={3} style={{ fontFamily: 'Lora, serif' }}>
                 {bank?.name ?? '题库'}
               </Title>

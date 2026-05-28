@@ -15,6 +15,13 @@ export class ExLocalDB extends Dexie {
       quizRecords: 'id, questionId, bankId, timestamp',
       notes: 'id, questionId, bankId',
     });
+
+    this.version(2).stores({
+      banks: 'id, updatedAt',
+      questions: 'id, bankId, order',
+      quizRecords: 'id, questionId, bankId, timestamp',
+      notes: 'id, questionId, bankId, updatedAt',
+    });
   }
 }
 

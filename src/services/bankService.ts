@@ -2,7 +2,7 @@ import { bankRepo } from '../repo/bankRepo';
 import type { Bank } from '../shared/types';
 
 type CreateInput = Omit<Bank, 'id' | 'createdAt' | 'updatedAt' | 'questionCount'>;
-type UpdateInput = Partial<Pick<Bank, 'name' | 'description' | 'tags'>>;
+type UpdateInput = Partial<Pick<Bank, 'name' | 'description' | 'tags' | 'color'>>;
 
 function normalizeName(name: string): string {
   const normalized = name.trim();

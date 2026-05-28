@@ -49,6 +49,19 @@ describe('noteRepo', () => {
     expect(notes).toHaveLength(2);
   });
 
+  it('finds all notes newest first for the notes overview', async () => {
+    const older = await noteRepo.save('q7', 'b1', emptyDoc);
+    await new Promise((resolve) => setTimeout(resolve, 1));
+    const newer = await noteRepo.save('q8', 'b2', {
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'visible note' }] }],
+    });
+
+    const notes = await noteRepo.findAll();
+
+    expect(notes.map((note) => note.id)).toEqual([newer.id, older.id]);
+  });
+
   it('deletes a note', async () => {
     await noteRepo.save('q6', 'b1', emptyDoc);
     await noteRepo.delete('q6');

@@ -13,6 +13,7 @@ interface QuizQuestionProps {
   showResult: boolean;
   readOnly?: boolean;
   showNotes?: boolean;
+  answerOnly?: boolean;
 }
 
 type RichNode = {
@@ -70,7 +71,7 @@ function renderTipTapContent(doc: unknown): ReactNode {
     if (node.type === 'paragraph') {
       const text = renderInline(node.content);
       return (
-        <Text key={index} component="div" size="sm" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+        <Text key={index} component="div" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: 'inherit' }}>
           {text}
         </Text>
       );
@@ -136,6 +137,18 @@ function richTextLength(doc: unknown): number {
   return collect(root?.content).length;
 }
 
+function answerLabel(question: Question, answer: number[]): string {
+  if (answer.length === 0) {
+    return '未作答';
+  }
+
+  if (question.type === 'truefalse') {
+    return answer[0] === 0 ? '正确 (T)' : '错误 (F)';
+  }
+
+  return answer.map((item) => String.fromCharCode(65 + item)).join(', ');
+}
+
 const emptyDoc = (): object => ({ type: 'doc', content: [{ type: 'paragraph', content: [] }] });
 
 function NotePanel({ questionId, bankId }: { questionId: string; bankId: string }) {
@@ -165,7 +178,7 @@ function NotePanel({ questionId, bankId }: { questionId: string; bankId: string 
   );
 }
 
-export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, readOnly, showNotes = true }: QuizQuestionProps) {
+export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, readOnly, showNotes = true, answerOnly = false }: QuizQuestionProps) {
   const optionCols = question.options.some((option) => richTextLength(option.content) > 42) ? { base: 1 } : { base: 1, sm: 2 };
   const toggleOption = (index: number) => {
     if (readOnly) {
@@ -184,6 +197,8 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, r
     );
   };
 
+  const effectiveSelectedAnswer = answerOnly ? [] : selectedAnswer;
+
   const optionColor = (index: number) => {
     if (!showResult) {
       return 'slate';
@@ -191,10 +206,41 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, r
     if (question.answer.includes(index)) {
       return 'green';
     }
-    if (selectedAnswer.includes(index)) {
+    if (effectiveSelectedAnswer.includes(index)) {
       return 'red';
     }
     return 'gray';
+  };
+  const optionVariant = (index: number) => {
+    if (!showResult) {
+      return selectedAnswer.includes(index) ? 'filled' : 'outline';
+    }
+
+    if (effectiveSelectedAnswer.includes(index)) {
+      return 'filled';
+    }
+    if (question.answer.includes(index)) {
+      return 'light';
+    }
+    return 'outline';
+  };
+  const optionResultLabel = (index: number) => {
+    if (!showResult) {
+      return null;
+    }
+
+    const isSelected = effectiveSelectedAnswer.includes(index);
+    const isCorrect = question.answer.includes(index);
+    if (isSelected && isCorrect) {
+      return '你的选择';
+    }
+    if (isSelected) {
+      return '你的选择';
+    }
+    if (isCorrect) {
+      return '正确答案';
+    }
+    return null;
   };
 
   return (
@@ -210,23 +256,30 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, r
         ))}
       </Group>
 
-      <Box mb="lg" style={{ fontSize: '1.05rem', lineHeight: 1.8, textAlign: 'left' }}>
+      <Box mb="lg" style={{ fontSize: '1.05em', lineHeight: 1.8, textAlign: 'left' }}>
         {renderTipTapContent(question.body)}
       </Box>
 
       {question.type === 'truefalse' ? (
         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
           {[0, 1].map((index) => {
-            const isSelected = selectedAnswer.includes(index);
+            const isSelected = effectiveSelectedAnswer.includes(index);
             const isCorrect = question.answer.includes(index);
             return (
               <Button
                 key={index}
-                variant={isSelected ? 'filled' : 'outline'}
+                variant={optionVariant(index)}
                 color={optionColor(index)}
                 leftSection={showResult && isCorrect ? <IconCheck size={14} /> : showResult && isSelected ? <IconX size={14} /> : undefined}
+                rightSection={
+                  optionResultLabel(index) ? (
+                    <Badge size="xs" variant={isCorrect ? 'light' : 'filled'} color={isCorrect ? 'green' : 'red'}>
+                      {optionResultLabel(index)}
+                    </Badge>
+                  ) : undefined
+                }
                 onClick={() => toggleOption(index)}
-                disabled={readOnly}
+                aria-disabled={readOnly}
                 fullWidth
               >
                 {index === 0 ? '正确 (T)' : '错误 (F)'}
@@ -237,11 +290,11 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, r
       ) : (
         <SimpleGrid cols={optionCols} spacing="sm">
           {question.options.map((option, index) => {
-            const isSelected = selectedAnswer.includes(index);
+            const isSelected = effectiveSelectedAnswer.includes(index);
             return (
               <Button
                 key={option.index}
-                variant={isSelected ? 'filled' : 'outline'}
+                variant={optionVariant(index)}
                 color={optionColor(index)}
                 fullWidth
                 size="lg"
@@ -257,9 +310,16 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, r
                   label: { width: '100%', justifyContent: 'flex-start', textAlign: 'left', whiteSpace: 'normal' },
                 }}
                 onClick={() => toggleOption(index)}
-                disabled={readOnly}
+                aria-disabled={readOnly}
                 leftSection={
                   <span className={`quiz-option-letter ${isSelected ? 'is-selected' : ''}`}>{String.fromCharCode(65 + index)}</span>
+                }
+                rightSection={
+                  optionResultLabel(index) ? (
+                    <Badge size="xs" variant={question.answer.includes(index) ? 'light' : 'filled'} color={question.answer.includes(index) ? 'green' : 'red'}>
+                      {optionResultLabel(index)}
+                    </Badge>
+                  ) : undefined
                 }
               >
                 <Box style={{ textAlign: 'left' }}>{renderTipTapContent(option.content)}</Box>
@@ -267,6 +327,25 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, r
             );
           })}
         </SimpleGrid>
+      )}
+
+      {showResult && !answerOnly && (
+        <Group className="quiz-answer-summary" gap="xs" mt="lg">
+          <Badge color={question.answer.length > 0 && answerLabel(question, selectedAnswer) === answerLabel(question, question.answer) ? 'green' : 'red'} variant="light">
+            你的答案: {answerLabel(question, selectedAnswer)}
+          </Badge>
+          <Badge color="green" variant="light">
+            正确答案: {answerLabel(question, question.answer)}
+          </Badge>
+        </Group>
+      )}
+
+      {showResult && answerOnly && (
+        <Group className="quiz-answer-summary" gap="xs" mt="lg">
+          <Badge color="green" variant="light">
+            正确答案: {answerLabel(question, question.answer)}
+          </Badge>
+        </Group>
       )}
 
       {showResult && (
@@ -286,7 +365,7 @@ export function QuizQuestion({ question, selectedAnswer, onSelect, showResult, r
         </Box>
       )}
 
-      {showResult && showNotes && <NotePanel questionId={question.id} bankId={question.bankId} />}
+      {showResult && showNotes && <NotePanel key={`${question.id}-${question.bankId}`} questionId={question.id} bankId={question.bankId} />}
     </Box>
   );
 }

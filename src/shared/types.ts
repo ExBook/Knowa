@@ -5,6 +5,7 @@ export interface Bank {
   name: string;
   description: string;
   tags: string[];
+  color?: string;
   createdAt: number;
   updatedAt: number;
   questionCount: number;
@@ -36,6 +37,7 @@ export interface QuizRecord {
   id: string;
   questionId: string;
   bankId: string;
+  sessionId?: string;
   selectedAnswer: number[];
   isCorrect: boolean;
   timestamp: number;

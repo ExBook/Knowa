@@ -1,12 +1,15 @@
-import { Accordion, ActionIcon, Badge, Box, Button, Checkbox, Group, LoadingOverlay, Modal, SegmentedControl, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
-import { IconEdit, IconPlayerPlay, IconSearch, IconStarFilled } from '@tabler/icons-react';
+import { Accordion, ActionIcon, Badge, Box, Button, Checkbox, Group, LoadingOverlay, SegmentedControl, Text, TextInput, Title, Tooltip } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { IconDownload, IconPlayerPlay, IconSearch, IconStarFilled } from '@tabler/icons-react';
+import { saveAs } from 'file-saver';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { generatePrecisePDF, initCJKFont } from '../../services/pdfExportService';
 import { questionService } from '../../services/questionService';
 import type { Question } from '../../shared/types';
 import { useBankStore } from '../../stores/bankStore';
 import { EmptyState } from '../components/EmptyState';
-import { QuizQuestion } from '../components/QuizQuestion';
+import { QuestionPreviewModal } from '../components/QuestionPreviewModal';
 
 function extractText(body: object): string {
   const texts: string[] = [];
@@ -50,6 +53,7 @@ export function StarredPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchText, setSearchText] = useState('');
   const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const loadStarred = async () => {
@@ -118,6 +122,30 @@ export function StarredPage() {
     navigate(`/bank/${first.bankId}/quiz`);
   };
 
+  const visibleQuestions = useMemo(() => groupedQuestions.flatMap(([, groupQuestions]) => groupQuestions), [groupedQuestions]);
+  const selectedVisibleQuestions = useMemo(() => visibleQuestions.filter((question) => selectedIds.has(question.id)), [selectedIds, visibleQuestions]);
+  const exportQuestions = selectedVisibleQuestions.length > 0 ? selectedVisibleQuestions : visibleQuestions;
+
+  const exportSelected = async () => {
+    if (exportQuestions.length === 0) {
+      return;
+    }
+
+    setExporting(true);
+    try {
+      await initCJKFont();
+      const blob = await generatePrecisePDF(
+        exportQuestions.map((question) => ({ question })),
+        { bankName: '收藏的题', includeAnswers: true, includeExplanations: true, includeNotes: false, includeStats: false },
+      );
+      saveAs(blob, 'ExLocal-收藏的题.pdf');
+    } catch (error) {
+      notifications.show({ color: 'red', title: '导出失败', message: (error as Error).message });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const toggleGroup = (groupQuestions: Question[]) => {
     setSelectedIds((current) => {
       const next = new Set(current);
@@ -140,7 +168,7 @@ export function StarredPage() {
   return (
     <Box pos="relative">
       <LoadingOverlay visible={loading} />
-      <Group className="page-header-sticky" justify="space-between">
+      <Box className="page-header-sticky collection-header">
         <Box>
           <Title order={2}>收藏的题</Title>
           <Text size="sm" c="dimmed">
@@ -155,10 +183,15 @@ export function StarredPage() {
             { value: 'chapter', label: '按章节' },
           ]}
         />
-        <Button size="sm" leftSection={<IconPlayerPlay size={15} />} disabled={selectedIds.size === 0} onClick={redoSelected}>
-          重做选中
-        </Button>
-      </Group>
+        <Group className="collection-actions" gap="xs">
+          <Button size="sm" variant="default" leftSection={<IconDownload size={15} />} disabled={exportQuestions.length === 0} loading={exporting} onClick={() => void exportSelected()}>
+            {selectedVisibleQuestions.length > 0 ? `导出选中 ${selectedVisibleQuestions.length}` : '导出全部'}
+          </Button>
+          <Button size="sm" leftSection={<IconPlayerPlay size={15} />} disabled={selectedIds.size === 0} onClick={redoSelected}>
+            重做选中
+          </Button>
+        </Group>
+      </Box>
       <Box className="page-body">
         <Box className="page-toolbar">
           <TextInput
@@ -195,20 +228,24 @@ export function StarredPage() {
               <Accordion.Panel>
               <Box className="surface-list surface-list-flat">
               {groupQuestions.map((question) => (
-                <Box key={question.id} className="question-row">
-                  <Group justify="space-between" gap="md" wrap="nowrap">
-                    <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+                <Box
+                  key={question.id}
+                  className="question-row question-row-clickable"
+                  onClick={(event) => {
+                    if ((event.target as HTMLElement).closest('button,input,label')) {
+                      return;
+                    }
+                    setPreviewQuestion(question);
+                  }}
+                >
+                  <Group justify="space-between" gap="md" wrap="wrap">
+                    <Group gap="sm" wrap="nowrap" style={{ minWidth: 0, flex: '1 1 240px' }}>
                       <Checkbox checked={selectedIds.has(question.id)} onChange={() => toggleSelected(question.id)} aria-label="选择题目" />
                       <Badge size="xs" color="slate" variant="outline">
                         {typeLabel(question.type)}
                       </Badge>
-                      <Box style={{ minWidth: 0 }}>
-                        <Text
-                          size="sm"
-                          lineClamp={1}
-                          className="question-title"
-                          onClick={() => setPreviewQuestion(question)}
-                        >
+                      <Box style={{ minWidth: 0, flex: 1 }}>
+                        <Text size="sm" lineClamp={1} className="question-title">
                           {extractText(question.body)}
                         </Text>
                         <Text size="xs" className="question-meta" lineClamp={1}>
@@ -231,24 +268,13 @@ export function StarredPage() {
         </Accordion>
       )}
       </Box>
-      <Modal opened={previewQuestion !== null} onClose={() => setPreviewQuestion(null)} title="题目预览" size="lg">
-        {previewQuestion && (
-          <Stack gap="md">
-            <Text size="sm" c="dimmed">
-              预览不可直接修改；需要调整题目时，请进入题库中的题目编辑页。
-            </Text>
-            <QuizQuestion question={previewQuestion} selectedAnswer={[]} onSelect={() => undefined} showResult readOnly showNotes={false} />
-            <Group justify="flex-end">
-              <Button variant="default" onClick={() => setPreviewQuestion(null)}>
-                关闭
-              </Button>
-              <Button leftSection={<IconEdit size={16} />} onClick={() => editQuestion(previewQuestion)}>
-                修改题目
-              </Button>
-            </Group>
-          </Stack>
-        )}
-      </Modal>
+      <QuestionPreviewModal
+        opened={previewQuestion !== null}
+        question={previewQuestion}
+        onClose={() => setPreviewQuestion(null)}
+        onEdit={editQuestion}
+        note="预览不可直接修改；需要调整题目时，请进入题库中的题目编辑页。"
+      />
     </Box>
   );
 }

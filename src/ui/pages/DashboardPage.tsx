@@ -91,12 +91,12 @@ export function DashboardPage() {
       return;
     }
 
-    await quizRecordRepo.deleteByBankId(id);
+    const deletedCount = await quizRecordRepo.deleteByBankId(id);
     closeClearModal();
     setStats({ totalAnswered: 0, correctCount: 0, accuracy: 0, totalDuration: 0 });
     setTagStats([]);
     setDailyStats([]);
-    notifications.show({ color: 'green', title: '已清空', message: '该题库的做题记录已清空' });
+    notifications.show({ color: 'green', title: '已清空', message: `已删除该题库 ${deletedCount} 条做题记录` });
   };
 
   return (

@@ -14,6 +14,7 @@ import { BankDetailPage } from './ui/pages/BankDetailPage';
 import { BankListPage } from './ui/pages/BankListPage';
 import { DashboardPage } from './ui/pages/DashboardPage';
 import { ExportPage } from './ui/pages/ExportPage';
+import { NotesPage } from './ui/pages/NotesPage';
 import { QuestionEditorPage } from './ui/pages/QuestionEditorPage';
 import { QuizRecordsPage } from './ui/pages/QuizRecordsPage';
 import { QuizPage } from './ui/pages/QuizPage';
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/bank/:id/export" element={<ExportPage />} />
             <Route path="/starred" element={<StarredPage />} />
             <Route path="/wrong" element={<WrongRecordsPage />} />
+            <Route path="/notes" element={<NotesPage />} />
             <Route path="/records" element={<QuizRecordsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

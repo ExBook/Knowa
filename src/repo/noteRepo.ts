@@ -33,6 +33,10 @@ export const noteRepo = {
     return db.notes.where('bankId').equals(bankId).toArray();
   },
 
+  async findAll(): Promise<Note[]> {
+    return db.notes.orderBy('updatedAt').reverse().toArray();
+  },
+
   async delete(questionId: string): Promise<void> {
     await db.notes.where('questionId').equals(questionId).delete();
   },

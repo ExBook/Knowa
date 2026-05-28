@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Accordion,
   Alert,
   Badge,
   Box,
@@ -46,6 +47,7 @@ import { useQuestionStore } from '../../stores/questionStore';
 import type { Question } from '../../shared/types';
 import { EmptyState } from '../components/EmptyState';
 import { ImportDropZone } from '../components/ImportDropZone';
+import { QuestionPreviewModal } from '../components/QuestionPreviewModal';
 import { QuizQuestion } from '../components/QuizQuestion';
 
 const markdownExample = `# Q1 [单选题] [标签: 数学, 基础]
@@ -63,6 +65,69 @@ const markdownExample = `# Q1 [单选题] [标签: 数学, 基础]
 Markdown 支持行内代码和数学公式。
 
 > 答案: T`;
+
+const markdownTemplates: Array<{ label: string; content: string }> = [
+  {
+    label: '单选题模板',
+    content: `# 题目标题 [单选题] [标签: 标签1, 标签2]
+这里填写题干，可以包含 \`行内代码\` 和 $x^2=4$。
+
+- A. 选项 A 内容
+- B. 选项 B 内容
+- C. 选项 C 内容
+- D. 选项 D 内容
+
+> 答案: A
+> 解析: 这里填写解析。
+`,
+  },
+  {
+    label: '多选题模板',
+    content: `# 题目标题 [多选题] [标签: 标签1]
+这里填写多选题题干。
+
+- A. 选项 A 内容
+- B. 选项 B 内容
+- C. 选项 C 内容
+- D. 选项 D 内容
+
+> 答案: A, C
+> 解析: 这里填写解析。
+`,
+  },
+  {
+    label: '判断题模板',
+    content: `# 题目标题 [判断题] [标签: 标签1]
+这里填写判断题题干。
+
+> 答案: T
+> 解析: 这里填写解析。
+`,
+  },
+  {
+    label: '代码/公式模板',
+    content: `# 题目标题 [单选题] [标签: 代码, 数学]
+阅读代码块并判断输出：
+
+\`\`\`ts
+const value = 2 ** 3;
+console.log(value);
+\`\`\`
+
+也可以写整行公式：
+
+$$
+E = mc^2
+$$
+
+- A. 输出 8
+- B. 输出 6
+
+> 答案: A
+> 解析: 指数运算 2 ** 3 等于 8。
+`,
+  },
+];
 
 function extractText(body: object): string {
   const texts: string[] = [];
@@ -153,6 +218,7 @@ export function BankDetailPage() {
   const { questions, loading, loadQuestions, bulkCreateQuestions, updateQuestion, deleteQuestion } = useQuestionStore();
   const [markdownText, setMarkdownText] = useState('');
   const [mdModalOpened, { open: openMdModal, close: closeMdModal }] = useDisclosure(false);
+  const [discardMdModalOpened, { open: openDiscardMdModal, close: closeDiscardMdModal }] = useDisclosure(false);
   const [clearModalOpened, { open: openClearModal, close: closeClearModal }] = useDisclosure(false);
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -270,7 +336,22 @@ export function BankDetailPage() {
   };
 
   const handleCloseMarkdownModal = () => {
+    if (markdownText.trim()) {
+      openDiscardMdModal();
+      return;
+    }
+
     closeMdModal();
+  };
+
+  const confirmCloseMarkdownModal = () => {
+    closeDiscardMdModal();
+    closeMdModal();
+    setMarkdownText('');
+  };
+
+  const insertMarkdownTemplate = (template: string) => {
+    setMarkdownText((current) => `${current.trim() ? `${current.trim()}\n\n---\n\n` : ''}${template}`);
   };
 
   const handleExport = async (includeRecords: boolean) => {
@@ -320,9 +401,9 @@ export function BankDetailPage() {
     }
 
     try {
-      await quizRecordRepo.deleteByBankId(id);
+      const deletedCount = await quizRecordRepo.deleteByBankId(id);
       closeClearModal();
-      notifications.show({ color: 'green', title: '已清空', message: '该题库的做题记录已清空' });
+      notifications.show({ color: 'green', title: '已清空', message: `已删除该题库 ${deletedCount} 条做题记录` });
     } catch (error) {
       notifications.show({ color: 'red', title: '清空失败', message: (error as Error).message });
     }
@@ -364,7 +445,7 @@ export function BankDetailPage() {
             <Button variant="default" leftSection={<IconFileTypePdf size={16} />} onClick={() => navigate(`/bank/${id}/export`)}>
               导出 PDF
             </Button>
-            <Button variant="default" color="red" onClick={openClearModal}>
+            <Button variant="filled" color="red" leftSection={<IconTrash size={16} />} onClick={openClearModal}>
               清空记录
             </Button>
             <Button leftSection={<IconPlayerPlay size={16} />} onClick={() => navigate(`/bank/${id}/quiz`)}>
@@ -477,14 +558,23 @@ export function BankDetailPage() {
             ) : (
               <Box className="surface-list">
                 {filteredQuestions.map((question) => (
-                  <Box key={question.id} className="question-row">
-                    <Group justify="space-between" gap="md" wrap="nowrap">
-                      <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+                  <Box
+                    key={question.id}
+                    className="question-row question-row-clickable"
+                    onClick={(event) => {
+                      if ((event.target as HTMLElement).closest('button')) {
+                        return;
+                      }
+                      setPreviewQuestion(question);
+                    }}
+                  >
+                    <Group justify="space-between" gap="md" wrap="wrap">
+                      <Group gap="sm" wrap="nowrap" style={{ minWidth: 0, flex: '1 1 240px' }}>
                         <Badge variant="light" size="sm">
                           {question.order}
                         </Badge>
-                        <Box style={{ minWidth: 0 }}>
-                          <Text size="sm" lineClamp={1} className="question-title" onClick={() => setPreviewQuestion(question)}>
+                        <Box style={{ minWidth: 0, flex: 1 }}>
+                          <Text size="sm" lineClamp={1} className="question-title">
                             {extractText(question.body)}
                           </Text>
                           <Group className="question-meta">
@@ -573,24 +663,29 @@ export function BankDetailPage() {
         </Tabs>
       </Box>
 
-      <Modal opened={mdModalOpened} onClose={handleCloseMarkdownModal} title="Markdown 批量导入" size="xl">
+      <Modal opened={mdModalOpened} onClose={handleCloseMarkdownModal} title="Markdown 批量导入" size="min(1400px, calc(100vw - 32px))" centered>
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
           <Stack gap="sm">
             <Group justify="space-between">
               <Text size="sm" fw={500}>
                 Markdown 内容
               </Text>
-              <Button size="xs" variant="subtle" onClick={() => setMarkdownText(markdownExample)}>
-                填入示例
-              </Button>
+              <Group gap={6}>
+                {markdownTemplates.map((template) => (
+                  <Button key={template.label} size="xs" variant="light" onClick={() => insertMarkdownTemplate(template.content)}>
+                    {template.label}
+                  </Button>
+                ))}
+              </Group>
             </Group>
             <Textarea
               value={markdownText}
               onChange={(event) => setMarkdownText(event.currentTarget.value)}
-              minRows={18}
               autosize
+              minRows={28}
+              maxRows={36}
               placeholder={markdownExample}
-              styles={{ input: { fontFamily: 'var(--mantine-font-family-monospace)', fontSize: 13 } }}
+              styles={{ input: { fontFamily: 'var(--mantine-font-family-monospace)', fontSize: 13, resize: 'vertical' } }}
             />
             <Text size="xs" c="dimmed">
               格式：标题行写题型和标签；选项使用 `- A.`；答案和解析使用引用块；多题之间用 `---` 分隔。
@@ -616,22 +711,46 @@ export function BankDetailPage() {
                 <Text size="sm">已解析 {parsedQuestions.length} 道题目。</Text>
               </Alert>
             )}
-            <Code block>{markdownExample}</Code>
-            <ScrollArea h={260} type="auto">
+            <Accordion variant="contained">
+              <Accordion.Item value="example">
+                <Accordion.Control>查看 Markdown 样例</Accordion.Control>
+                <Accordion.Panel>
+                  <Code block>{markdownExample}</Code>
+                </Accordion.Panel>
+              </Accordion.Item>
+            </Accordion>
+            <ScrollArea h={420} type="auto">
               <Stack gap="xs">
                 {parsedQuestions.map((question, index) => (
-                  <Box key={index} p="sm" style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)' }}>
+                  <Box key={index} p="sm" style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-surface)' }}>
                     <Group gap="xs" mb={4}>
                       <Badge size="xs">{typeLabel(question.type)}</Badge>
                       <Text size="xs" c="dimmed">
                         {question.type === 'truefalse' ? '判断题' : `${question.options.length} 个选项`}
                       </Text>
                     </Group>
-                    <Text size="sm" lineClamp={2}>
-                      {extractText(question.body)}
-                    </Text>
+                    <QuizQuestion
+                      question={{
+                        id: `preview-${index}`,
+                        bankId: id ?? 'preview',
+                        type: question.type,
+                        body: question.body,
+                        options: question.options,
+                        answer: question.answer,
+                        explanation: question.explanation,
+                        tags: question.tags,
+                        order: index + 1,
+                        createdAt: 0,
+                      }}
+                      selectedAnswer={[]}
+                      onSelect={() => undefined}
+                      showResult
+                      readOnly
+                      showNotes={false}
+                      answerOnly
+                    />
                     <Text size="xs" c="dimmed" mt={4}>
-                      答案: {previewAnswer(question)}
+                      识别答案: {previewAnswer(question)}
                     </Text>
                   </Box>
                 ))}
@@ -639,12 +758,26 @@ export function BankDetailPage() {
             </ScrollArea>
           </Stack>
         </SimpleGrid>
-        <Group justify="flex-end" mt="md">
+        <Group className="modal-sticky-footer" justify="flex-end" mt="md">
           <Button variant="default" onClick={handleCloseMarkdownModal}>
             取消
           </Button>
           <Button onClick={() => void handleMarkdownImport()} loading={importing} disabled={!canImportMarkdown}>
             导入
+          </Button>
+        </Group>
+      </Modal>
+
+      <Modal opened={discardMdModalOpened} onClose={closeDiscardMdModal} title="放弃 Markdown 内容？" centered>
+        <Text size="sm" c="dimmed">
+          当前导入窗口里还有未导入的 Markdown 内容。关闭后这些内容会被清空。
+        </Text>
+        <Group justify="flex-end" mt="lg">
+          <Button variant="default" onClick={closeDiscardMdModal}>
+            继续编辑
+          </Button>
+          <Button color="red" onClick={confirmCloseMarkdownModal}>
+            放弃并关闭
           </Button>
         </Group>
       </Modal>
@@ -663,24 +796,13 @@ export function BankDetailPage() {
         </Group>
       </Modal>
 
-      <Modal opened={previewQuestion !== null} onClose={() => setPreviewQuestion(null)} title="题目预览" size="lg">
-        {previewQuestion && (
-          <Stack gap="md">
-            <Text size="sm" c="dimmed">
-              预览不可直接修改；需要调整题目时，请进入题目编辑页。
-            </Text>
-            <QuizQuestion question={previewQuestion} selectedAnswer={[]} onSelect={() => undefined} showResult readOnly showNotes={false} />
-            <Group justify="flex-end">
-              <Button variant="default" onClick={() => setPreviewQuestion(null)}>
-                关闭
-              </Button>
-              <Button leftSection={<IconEdit size={16} />} onClick={() => editPreviewQuestion(previewQuestion)}>
-                修改题目
-              </Button>
-            </Group>
-          </Stack>
-        )}
-      </Modal>
+      <QuestionPreviewModal
+        opened={previewQuestion !== null}
+        question={previewQuestion}
+        onClose={() => setPreviewQuestion(null)}
+        onEdit={editPreviewQuestion}
+        note="预览不可直接修改；需要调整题目时，请进入题目编辑页。"
+      />
     </Box>
   );
 }

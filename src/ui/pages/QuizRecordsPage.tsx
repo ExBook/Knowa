@@ -1,5 +1,5 @@
 import { Accordion, Badge, Box, Button, Group, LoadingOverlay, Modal, Stack, Text, TextInput, Title } from '@mantine/core';
-import { IconCheck, IconEdit, IconSearch, IconX } from '@tabler/icons-react';
+import { IconCheck, IconEdit, IconPlayerPlay, IconSearch, IconX } from '@tabler/icons-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { quizRecordRepo } from '../../repo/quizRecordRepo';
@@ -69,6 +69,14 @@ function answerText(answer: number[]): string {
   return answer.map((item) => String.fromCharCode(65 + item)).join(', ');
 }
 
+interface RecordSession {
+  id: string;
+  bankId: string;
+  mode: QuizRecord['mode'];
+  timestamp: number;
+  records: QuizRecord[];
+}
+
 export function QuizRecordsPage() {
   const navigate = useNavigate();
   const { banks, loadBanks } = useBankStore();
@@ -98,42 +106,104 @@ export function QuizRecordsPage() {
   const bankName = useCallback((bankId: string) => banks.find((bank) => bank.id === bankId)?.name ?? '未知题库', [banks]);
   const previewQuestion = previewRecord ? questionById.get(previewRecord.questionId) ?? null : null;
 
-  const filteredRecords = useMemo(() => {
-    const keyword = searchText.trim().toLowerCase();
-    return records.filter((record) => {
-      const question = questionById.get(record.questionId);
-      if (!question) {
-        return false;
+  const sessions = useMemo(() => {
+    const groups = new Map<string, RecordSession>();
+    records.forEach((record) => {
+      const key = record.sessionId ?? `legacy-${record.bankId}-${record.mode}-${record.timestamp}`;
+      const existing = groups.get(key);
+      if (existing) {
+        existing.records.push(record);
+        existing.timestamp = Math.max(existing.timestamp, record.timestamp);
+        return;
       }
 
+      groups.set(key, {
+        id: key,
+        bankId: record.bankId,
+        mode: record.mode,
+        timestamp: record.timestamp,
+        records: [record],
+      });
+    });
+
+    return Array.from(groups.values())
+      .map((session) => ({ ...session, records: [...session.records].sort((a, b) => a.timestamp - b.timestamp) }))
+      .sort((a, b) => b.timestamp - a.timestamp);
+  }, [records]);
+
+  const filteredSessions = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    return sessions.filter((session) => {
       if (!keyword) {
         return true;
       }
 
-      return [
-        extractText(question.body),
-        question.tags.join(' '),
-        question.chapter,
-        question.section,
-        question.knowledgePoint,
-        bankName(record.bankId),
-        record.mode === 'exam' ? '考试' : '练习',
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(keyword);
-    });
-  }, [bankName, questionById, records, searchText]);
+      return session.records.some((record) => {
+        const question = questionById.get(record.questionId);
+        if (!question) {
+          return false;
+        }
 
-  const groupedRecords = useMemo(() => {
-    const groups = new Map<string, QuizRecord[]>();
-    filteredRecords.forEach((record) => {
-      const key = formatDate(record.timestamp);
-      groups.set(key, [...(groups.get(key) ?? []), record]);
+        return [
+          extractText(question.body),
+          question.tags.join(' '),
+          question.chapter,
+          question.section,
+          question.knowledgePoint,
+          bankName(record.bankId),
+          record.mode === 'exam' ? '考试' : '练习',
+          formatDate(record.timestamp),
+          formatTime(record.timestamp),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(keyword);
+      });
+    });
+  }, [bankName, questionById, searchText, sessions]);
+
+  const groupedSessions = useMemo(() => {
+    const groups = new Map<string, RecordSession[]>();
+    filteredSessions.forEach((session) => {
+      const key = formatDate(session.timestamp);
+      groups.set(key, [...(groups.get(key) ?? []), session]);
     });
     return Array.from(groups.entries());
-  }, [filteredRecords]);
+  }, [filteredSessions]);
+
+  const sessionStats = (session: RecordSession) => {
+    const total = session.records.length;
+    const correct = session.records.filter((record) => record.isCorrect).length;
+    const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+    return { total, correct, accuracy };
+  };
+
+  const redoSession = (session: RecordSession) => {
+    const questionIds = Array.from(new Set(session.records.map((record) => record.questionId)));
+    if (questionIds.length === 0) {
+      return;
+    }
+
+    window.sessionStorage.setItem('exlocal.reviewQuestionIds', JSON.stringify(questionIds));
+    navigate(`/bank/${session.bankId}/quiz`);
+  };
+
+  const sessionSubtitle = (session: RecordSession) =>
+    [
+      formatTime(session.timestamp),
+      bankName(session.bankId),
+      session.mode === 'exam' ? '考试模式' : '练习模式',
+      `${session.records.length} 题`,
+    ].join(' / ');
+
+  const recordMeta = (record: QuizRecord) =>
+    [
+      formatTime(record.timestamp),
+      bankName(record.bankId),
+      record.mode === 'exam' ? '考试' : '练习',
+      formatDuration(record.duration),
+    ].join(' / ');
 
   const editQuestion = (question: Question) => {
     navigate(`/bank/${question.bankId}/editor/${question.id}?returnTo=${encodeURIComponent('/records')}`);
@@ -168,61 +238,103 @@ export function QuizRecordsPage() {
             value={searchText}
             onChange={(event) => setSearchText(event.currentTarget.value)}
             leftSection={<IconSearch size={16} />}
-            style={{ minWidth: 360, flex: 1 }}
+            style={{ minWidth: 0, flex: '1 1 320px' }}
           />
         </Box>
 
         {records.length === 0 ? (
           <EmptyState title="还没有做题记录" description="开始练习或考试后，每次作答都会保存在这里。" />
-        ) : filteredRecords.length === 0 ? (
+        ) : filteredSessions.length === 0 ? (
           <EmptyState title="没有匹配的记录" description="换一个题目、题库或知识点关键词试试。" />
         ) : (
-          <Accordion className="surface-accordion" multiple defaultValue={groupedRecords.slice(0, 2).map(([groupName]) => groupName)}>
-            {groupedRecords.map(([groupName, groupRecords]) => (
+          <Accordion className="surface-accordion" multiple defaultValue={groupedSessions.slice(0, 2).map(([groupName]) => groupName)}>
+            {groupedSessions.map(([groupName, groupSessions]) => (
               <Accordion.Item key={groupName} value={groupName}>
                 <Accordion.Control>
                   <Group justify="space-between" pr="md">
                     <Text fw={600}>{groupName}</Text>
-                    <Badge variant="light">{groupRecords.length} 次</Badge>
+                    <Badge variant="light">
+                      {groupSessions.length} 组 / {groupSessions.reduce((total, session) => total + session.records.length, 0)} 题
+                    </Badge>
                   </Group>
                 </Accordion.Control>
                 <Accordion.Panel>
-                  <Stack gap={0} className="surface-list surface-list-flat">
-                    {groupRecords.map((record) => {
-                      const question = questionById.get(record.questionId);
-                      if (!question) {
-                        return null;
-                      }
-
+                  <Accordion className="quiz-session-inner-accordion" multiple defaultValue={groupSessions.slice(0, 1).map((session) => session.id)}>
+                    {groupSessions.map((session) => {
+                      const stats = sessionStats(session);
                       return (
-                        <Box key={record.id} className="question-row">
-                          <Group justify="space-between" gap="md" wrap="nowrap">
-                            <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
-                              <Badge color={record.isCorrect ? 'green' : 'red'} variant="light" leftSection={record.isCorrect ? <IconCheck size={12} /> : <IconX size={12} />}>
-                                {record.isCorrect ? '正确' : '错误'}
-                              </Badge>
+                        <Accordion.Item key={session.id} value={session.id} className="quiz-session-card">
+                          <Accordion.Control>
+                            <Group justify="space-between" gap="md" wrap="nowrap" pr="md">
                               <Box style={{ minWidth: 0 }}>
-                                <Text size="sm" lineClamp={1} className="question-title" onClick={() => setPreviewRecord(record)}>
-                                  {extractText(question.body)}
+                                <Text fw={600} lineClamp={1}>
+                                  {session.mode === 'exam' ? '考试题组' : '练习题组'}
                                 </Text>
-                                <Text size="xs" className="question-meta" lineClamp={1}>
-                                  {[formatTime(record.timestamp), bankName(record.bankId), record.mode === 'exam' ? '考试模式' : '练习模式', formatDuration(record.duration)].join(' / ')}
+                                <Text size="xs" c="dimmed" lineClamp={1}>
+                                  {sessionSubtitle(session)}
                                 </Text>
                               </Box>
+                              <Group gap="xs" wrap="nowrap" onClick={(event) => event.stopPropagation()}>
+                                <Badge color={stats.accuracy >= 60 ? 'green' : 'red'} variant="light">
+                                  {stats.correct}/{stats.total} · {stats.accuracy}%
+                                </Badge>
+                                <Button size="xs" variant="light" leftSection={<IconPlayerPlay size={14} />} onClick={() => redoSession(session)}>
+                                  重做本组
+                                </Button>
+                              </Group>
                             </Group>
-                            <Group gap="xs" wrap="nowrap">
-                              <Badge size="xs" color="gray" variant="outline">
-                                答案 {answerText(record.selectedAnswer)}
-                              </Badge>
-                              <Button size="xs" variant="light" onClick={() => setPreviewRecord(record)}>
-                                预览
-                              </Button>
-                            </Group>
-                          </Group>
-                        </Box>
+                          </Accordion.Control>
+                          <Accordion.Panel>
+                            <Box className="surface-list surface-list-flat">
+                              {session.records.map((record) => {
+                                const question = questionById.get(record.questionId);
+                                if (!question) {
+                                  return null;
+                                }
+
+                                return (
+                                  <Box
+                                    key={record.id}
+                                    className="question-row question-row-clickable"
+                                    onClick={(event) => {
+                                      if ((event.target as HTMLElement).closest('button')) {
+                                        return;
+                                      }
+                                      setPreviewRecord(record);
+                                    }}
+                                  >
+                                    <Group justify="space-between" gap="md" wrap="wrap">
+                                      <Group gap="sm" wrap="nowrap" style={{ minWidth: 0, flex: '1 1 240px' }}>
+                                        <Badge color={record.isCorrect ? 'green' : 'red'} variant="light" leftSection={record.isCorrect ? <IconCheck size={12} /> : <IconX size={12} />}>
+                                          {record.isCorrect ? '正确' : '错误'}
+                                        </Badge>
+                                        <Box style={{ minWidth: 0, flex: 1 }}>
+                                          <Text size="sm" lineClamp={1} className="question-title">
+                                            {extractText(question.body)}
+                                          </Text>
+                                          <Text size="xs" className="question-meta" lineClamp={1}>
+                                            {recordMeta(record)}
+                                          </Text>
+                                        </Box>
+                                      </Group>
+                                      <Group gap="xs" wrap="nowrap">
+                                        <Badge size="xs" color="gray" variant="outline">
+                                          答案 {answerText(record.selectedAnswer)}
+                                        </Badge>
+                                        <Button size="xs" variant="light" onClick={() => setPreviewRecord(record)}>
+                                          预览
+                                        </Button>
+                                      </Group>
+                                    </Group>
+                                  </Box>
+                                );
+                              })}
+                            </Box>
+                          </Accordion.Panel>
+                        </Accordion.Item>
                       );
                     })}
-                  </Stack>
+                  </Accordion>
                 </Accordion.Panel>
               </Accordion.Item>
             ))}

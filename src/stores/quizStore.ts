@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { nanoid } from 'nanoid';
 import { questionRepo } from '../repo/questionRepo';
 import { getAppSettings } from '../services/appSettings';
 import { quizService } from '../services/quizService';
@@ -37,6 +38,7 @@ interface QuizState {
   answers: Record<string, AnswerEntry>;
   questionStartTime: number;
   sessionStartTime: number;
+  sessionId: string;
   finished: boolean;
   startQuiz: (bankId: string, mode: QuizMode, orderType: OrderType, filter?: QuizFilter) => Promise<void>;
   selectAnswer: (questionId: string, selected: number[]) => void;
@@ -78,6 +80,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   answers: {},
   questionStartTime: 0,
   sessionStartTime: 0,
+  sessionId: '',
   finished: false,
 
   startQuiz: async (bankId, mode, orderType, filter) => {
@@ -101,6 +104,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       answers: {},
       questionStartTime: now,
       sessionStartTime: now,
+      sessionId: nanoid(),
       finished: false,
     });
   },
@@ -132,37 +136,32 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     const duration = Math.max(0, Math.round((Date.now() - questionStartTime) / 1000));
     const grade = quizService.gradeQuestion(question, entry.selected);
 
-    if (mode === 'practice') {
-      await quizService.submitAnswer({
-        questionId: question.id,
-        bankId: question.bankId,
-        selectedAnswer: entry.selected,
-        isCorrect: grade.isCorrect,
-        duration,
-        mode,
-      });
-    }
-
     if (!grade.isCorrect && getAppSettings().autoFavoriteWrong) {
       await questionRepo.update(question.id, { starred: true });
     }
 
+    let allAnswered = false;
     set((state) => {
       const nextAnswers = {
         ...state.answers,
         [question.id]: { ...entry, ...grade, duration, answered: true },
       };
+      allAnswered = questions.every((item) => nextAnswers[item.id]?.answered);
 
       return {
         answers: nextAnswers,
-        finished: mode === 'practice' ? questions.every((item) => nextAnswers[item.id]?.answered) : state.finished,
+        finished: state.finished,
         questionStartTime: Date.now(),
       };
     });
+
+    if (mode === 'practice' && allAnswered) {
+      await get().submitAllAnswers();
+    }
   },
 
   submitAllAnswers: async () => {
-    const { questions, answers, mode } = get();
+    const { questions, answers, mode, sessionId } = get();
     const settings = getAppSettings();
     const records: Omit<QuizRecord, 'id' | 'timestamp'>[] = [];
     const updated: Record<string, AnswerEntry> = {};
@@ -174,9 +173,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       records.push({
         questionId: question.id,
         bankId: question.bankId,
+        sessionId,
         selectedAnswer: selected,
         isCorrect: grade.isCorrect,
-        duration: 0,
+        duration: mode === 'practice' ? (entry?.duration ?? 0) : 0,
         mode,
       });
       updated[question.id] = { ...(entry ?? emptyEntry()), selected, ...grade, duration: 0, answered: true };

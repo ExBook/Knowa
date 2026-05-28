@@ -1,11 +1,21 @@
-import { Box, Button, Group, Modal, SegmentedControl, Select, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Badge, Box, Button, Group, Modal, NumberInput, SegmentedControl, Select, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconArrowLeft, IconMaximize, IconMinimize, IconStar, IconStarFilled } from '@tabler/icons-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { IconArrowLeft, IconClock, IconMaximize, IconMinimize, IconStar, IconStarFilled, IconTypography } from '@tabler/icons-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useNoteStore } from '../../stores/noteStore';
 import { useQuestionStore } from '../../stores/questionStore';
 import { useQuizStore } from '../../stores/quizStore';
+import {
+  applyQuizFontStyle,
+  getAppSettings,
+  getQuizFontFamily,
+  getQuizFontStyle,
+  quizFontStyleOptions,
+  saveAppSettings,
+  type AppSettings,
+  type QuizFontStyle,
+} from '../../services/appSettings';
 import { questionService } from '../../services/questionService';
 import { EmptyState } from '../components/EmptyState';
 import { QuizProgress } from '../components/QuizProgress';
@@ -24,8 +34,12 @@ export function QuizPage() {
   const { questions, currentIndex, answers, mode, finished } = store;
   const [showSetup, { close: closeSetup }] = useDisclosure(true);
   const [confirmSubmitOpened, { open: openConfirmSubmit, close: closeConfirmSubmit }] = useDisclosure(false);
+  const [confirmBackOpened, { open: openConfirmBack, close: closeConfirmBack }] = useDisclosure(false);
+  const [fontModalOpened, { open: openFontModal, close: closeFontModal }] = useDisclosure(false);
   const [selectedMode, setSelectedMode] = useState<QuizMode>('practice');
   const [selectedOrder, setSelectedOrder] = useState<OrderType>('sequential');
+  const [selectedCountdownMinutes, setSelectedCountdownMinutes] = useState<number | ''>('');
+  const [timeLimitSeconds, setTimeLimitSeconds] = useState(0);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [selectedKnowledge, setSelectedKnowledge] = useState<string | null>(null);
@@ -33,7 +47,9 @@ export function QuizPage() {
   const [reviewMode, setReviewMode] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [starredOverrides, setStarredOverrides] = useState<Record<string, boolean>>({});
+  const [quizSettings, setQuizSettings] = useState<AppSettings>(() => getAppSettings());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutSubmittedRef = useRef(false);
 
   useEffect(() => {
     if (id) {
@@ -60,6 +76,18 @@ export function QuizPage() {
   const currentQuestion = questions[currentIndex];
   const currentEntry = currentQuestion ? answers[currentQuestion.id] : undefined;
   const results = store.getResults();
+  const questionStatuses = useMemo(
+    () =>
+      questions.map((question, index) => {
+        const entry = answers[question.id];
+        return {
+          id: question.id,
+          label: index + 1,
+          status: entry?.isCorrect ? 'correct' : entry?.partialCorrect ? 'partial' : entry?.answered ? 'wrong' : 'unanswered',
+        } as const;
+      }),
+    [answers, questions],
+  );
   const uniqueOptions = (values: Array<string | undefined>) =>
     Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)))).map((value) => ({
       value,
@@ -89,6 +117,7 @@ export function QuizPage() {
       ).length,
     [selectedChapter, selectedKnowledge, selectedSection, setupQuestions],
   );
+  const remainingSeconds = timeLimitSeconds ? Math.max(0, timeLimitSeconds - timer) : null;
 
   const startQuiz = async () => {
     if (!id) {
@@ -102,6 +131,8 @@ export function QuizPage() {
     });
     await loadNotes(id);
     setTimer(0);
+    timeoutSubmittedRef.current = false;
+    setTimeLimitSeconds(typeof selectedCountdownMinutes === 'number' && selectedCountdownMinutes > 0 ? selectedCountdownMinutes * 60 : 0);
     setReviewMode(false);
     closeSetup();
   };
@@ -110,13 +141,25 @@ export function QuizPage() {
     await store.submitCurrentAnswer();
   };
 
-  const handleSubmitAll = async () => {
+  const handleSubmitAll = useCallback(async () => {
     await store.submitAllAnswers();
     closeConfirmSubmit();
+    closeConfirmBack();
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-  };
+  }, [closeConfirmBack, closeConfirmSubmit, store]);
+
+  useEffect(() => {
+    if (!timeLimitSeconds || finished || showSetup || questions.length === 0) {
+      return;
+    }
+
+    if (timer >= timeLimitSeconds && !timeoutSubmittedRef.current) {
+      timeoutSubmittedRef.current = true;
+      void handleSubmitAll();
+    }
+  }, [finished, handleSubmitAll, questions.length, showSetup, timeLimitSeconds, timer]);
 
   const handleSubmitAllClick = () => {
     if (answeredCount < questions.length) {
@@ -150,6 +193,24 @@ export function QuizPage() {
       return 'blue';
     }
     return 'gray';
+  };
+  const handleReviewQuestion = (index: number) => {
+    store.goToQuestion(index);
+    setReviewMode(true);
+  };
+  const handleBackClick = () => {
+    if (!finished) {
+      openConfirmBack();
+      return;
+    }
+    navigate(`/bank/${id}`);
+  };
+  const leaveWithoutSaving = () => {
+    closeConfirmBack();
+    navigate(`/bank/${id}`);
+  };
+  const updateQuizSettings = (next: AppSettings) => {
+    setQuizSettings(saveAppSettings(next));
   };
 
   if (showSetup) {
@@ -220,6 +281,15 @@ export function QuizPage() {
               searchable
             />
           </SimpleGrid>
+          <NumberInput
+            label="倒计时（分钟）"
+            description="留空或 0 表示不限时；时间到会自动交卷。"
+            min={0}
+            max={360}
+            value={selectedCountdownMinutes}
+            onChange={(value) => setSelectedCountdownMinutes(value === '' ? '' : Number(value))}
+            leftSection={<IconClock size={16} />}
+          />
           <Text size="xs" c="dimmed">
             将开始 {filteredSetupCount} 道题。
           </Text>
@@ -250,7 +320,9 @@ export function QuizPage() {
           correct={results.correct}
           accuracy={results.accuracy}
           totalDuration={timer}
+          questionStatuses={questionStatuses}
           onReview={() => setReviewMode(true)}
+          onReviewQuestion={handleReviewQuestion}
           onBack={() => navigate(`/bank/${id}`)}
         />
       </Box>
@@ -272,12 +344,22 @@ export function QuizPage() {
       <Box className="quiz-topbar">
         <Group justify="space-between" gap="md" wrap="nowrap">
           <Group gap="xs" wrap="nowrap">
-            <Button variant="subtle" px="xs" aria-label="返回题库" onClick={() => navigate(`/bank/${id}`)}>
+            <Button variant="subtle" px="xs" aria-label="返回题库" onClick={handleBackClick}>
               <IconArrowLeft size={18} />
             </Button>
             <QuizProgress current={currentIndex} total={questions.length} answeredCount={answeredCount} elapsed={timer} mode={mode} />
+            {remainingSeconds !== null && (
+              <Badge color={remainingSeconds <= 60 ? 'red' : 'slate'} variant="light" className="quiz-countdown-badge">
+                剩余 {Math.floor(remainingSeconds / 60).toString().padStart(2, '0')}:{(remainingSeconds % 60).toString().padStart(2, '0')}
+              </Badge>
+            )}
           </Group>
           <Group gap="xs" wrap="nowrap">
+            {finished && reviewMode && (
+              <Button variant="light" onClick={() => setReviewMode(false)}>
+                回到完成页
+              </Button>
+            )}
             <Button
               variant="subtle"
               color="yellow"
@@ -290,12 +372,21 @@ export function QuizPage() {
             <Button variant="default" leftSection={focusMode ? <IconMinimize size={16} /> : <IconMaximize size={16} />} onClick={() => setFocusMode((value) => !value)}>
               {focusMode ? '退出专注' : '专注模式'}
             </Button>
+            <Button variant="default" leftSection={<IconTypography size={16} />} onClick={openFontModal}>
+              字体
+            </Button>
           </Group>
         </Group>
       </Box>
 
-      <Box p="xl" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-        <Box className="quiz-paper">
+      <Box p="xl" className="quiz-content-scroll">
+        <Box
+          className="quiz-paper"
+          style={{
+            '--quiz-font-family': getQuizFontFamily(quizSettings),
+            '--quiz-font-size': `${quizSettings.quizFontSize}px`,
+          } as CSSProperties}
+        >
           {currentQuestion ? (
             <QuizQuestion
               question={currentQuestion}
@@ -321,8 +412,18 @@ export function QuizPage() {
             {questions.map((question, index) => (
               <Button
                 key={question.id}
-                variant={index === currentIndex ? 'filled' : answers[question.id]?.answered || answers[question.id]?.selected.length ? 'light' : 'outline'}
-                color={index === currentIndex ? 'slate' : navColor(question.id)}
+                variant={
+                  reviewMode || finished
+                    ? index === currentIndex
+                      ? 'filled'
+                      : 'light'
+                    : index === currentIndex
+                      ? 'filled'
+                      : answers[question.id]?.answered || answers[question.id]?.selected.length
+                        ? 'light'
+                        : 'outline'
+                }
+                color={reviewMode || finished ? navColor(question.id) : index === currentIndex ? 'slate' : navColor(question.id)}
                 size="xs"
                 miw={34}
                 px={8}
@@ -363,6 +464,52 @@ export function QuizPage() {
             交卷
           </Button>
         </Group>
+      </Modal>
+
+      <Modal opened={confirmBackOpened} onClose={closeConfirmBack} title="离开本次刷题？" centered>
+        <Text size="sm" c="dimmed">
+          当前刷题还没有交卷。离开后，本次未完成的作答不会写入做题记录。
+        </Text>
+        <Group justify="flex-end" mt="lg">
+          <Button variant="default" onClick={closeConfirmBack}>
+            继续做题
+          </Button>
+          <Button color="red" onClick={leaveWithoutSaving}>
+            离开且不保存
+          </Button>
+        </Group>
+      </Modal>
+
+      <Modal opened={fontModalOpened} onClose={closeFontModal} title="刷题字体设置" centered>
+        <Stack gap="sm">
+          <Select
+            label="字体风格"
+            data={quizFontStyleOptions.map((item) => ({ value: item.value, label: item.label }))}
+            value={getQuizFontStyle(quizSettings)}
+            onChange={(value) => updateQuizSettings(applyQuizFontStyle(quizSettings, (value ?? 'academic') as QuizFontStyle))}
+          />
+          <NumberInput
+            label="字号"
+            min={14}
+            max={22}
+            suffix=" px"
+            value={quizSettings.quizFontSize}
+            onChange={(value) => updateQuizSettings({ ...quizSettings, quizFontSize: Number(value) || 16 })}
+          />
+          <Box
+            className="quiz-font-preview"
+            style={{
+              '--quiz-font-family': getQuizFontFamily(quizSettings),
+              '--quiz-font-size': `${quizSettings.quizFontSize}px`,
+            } as CSSProperties}
+          >
+            <Text size="xs" c="dimmed" mb={6}>
+              预览
+            </Text>
+            <Text className="quiz-font-preview-title">ExLocal Quiz Preview</Text>
+            <Text className="quiz-font-preview-body">刷题阅读：极限、矩阵与 probability A/B/C/D。</Text>
+          </Box>
+        </Stack>
       </Modal>
     </Box>
   );

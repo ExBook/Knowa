@@ -54,7 +54,7 @@ export const quizRecordRepo = {
     };
   },
 
-  async deleteByBankId(bankId: string): Promise<void> {
-    await db.quizRecords.where('bankId').equals(bankId).delete();
+  async deleteByBankId(bankId: string): Promise<number> {
+    return db.quizRecords.where('bankId').equals(bankId).delete();
   },
 };

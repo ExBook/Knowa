@@ -3,7 +3,7 @@ import { bankService } from '../services/bankService';
 import type { Bank } from '../shared/types';
 
 type CreateInput = Omit<Bank, 'id' | 'createdAt' | 'updatedAt' | 'questionCount'>;
-type UpdateInput = Partial<Pick<Bank, 'name' | 'description' | 'tags'>>;
+type UpdateInput = Partial<Pick<Bank, 'name' | 'description' | 'tags' | 'color'>>;
 
 interface BankState {
   banks: Bank[];

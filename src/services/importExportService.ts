@@ -8,7 +8,7 @@ import type { Bank, Note, Question, QuizRecord } from '../shared/types';
 
 interface BankExportData {
   version: 1;
-  bank: { name: string; description: string; tags: string[] };
+  bank: { name: string; description: string; tags: string[]; color?: string };
   questions: Array<{
     id: string;
     type: Question['type'];
@@ -238,7 +238,7 @@ export async function exportBank(bankId: string, includeRecords: boolean): Promi
   const { images, questions } = extractImages(sourceQuestions);
   const bankData: BankExportData = {
     version: 1,
-    bank: { name: bank.name, description: bank.description, tags: bank.tags },
+    bank: { name: bank.name, description: bank.description, tags: bank.tags, color: bank.color },
     questions,
   };
 
@@ -276,6 +276,7 @@ export async function importExbank(file: File): Promise<ImportResult> {
     name: bankData.bank.name,
     description: bankData.bank.description,
     tags: bankData.bank.tags,
+    color: bankData.bank.color,
   });
   const questionCount = await importIntoBank(bank.id, bankData, recordsData, imageMap);
   return { bank, questionCount };
