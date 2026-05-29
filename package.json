@@ -8,7 +8,12 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build",
+    "site:dev": "vite website --host 0.0.0.0",
+    "site:build": "vite build website",
+    "site:preview": "vite preview website --host 0.0.0.0"
   },
   "dependencies": {
     "@mantine/charts": "^7.17.8",
@@ -17,6 +22,7 @@
     "@mantine/notifications": "^7.17.8",
     "@mantine/tiptap": "^7.17.8",
     "@tabler/icons-react": "^3.44.0",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tiptap/core": "^3.23.6",
     "@tiptap/extension-code-block-lowlight": "^3.23.6",
     "@tiptap/extension-image": "^3.23.6",

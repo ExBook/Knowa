@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">ExLocal app icon</title>
+  <desc id="desc">A flat rounded ExLocal study-book mark.</desc>
+  <rect width="1024" height="1024" rx="240" fill="#f5f7f0"/>
+  <rect x="152" y="152" width="720" height="720" rx="220" fill="#466655"/>
+  <path d="M334 302h206c90 0 150 60 150 150v270H484c-90 0-150-60-150-150V302Z" fill="#f5f7f0"/>
+  <path d="M484 302v420" fill="none" stroke="#466655" stroke-width="56" stroke-linecap="round"/>
+  <path d="M592 444H430M592 556H430" fill="none" stroke="#466655" stroke-width="48" stroke-linecap="round"/>
+</svg>

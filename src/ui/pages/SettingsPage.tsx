@@ -1,6 +1,6 @@
 import { Badge, Box, Button, Group, NumberInput, Select, SimpleGrid, Stack, Switch, Text, TextInput, Title, UnstyledButton, useMantineColorScheme } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconDownload, IconFolder, IconRefresh, IconUpload } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconDownload, IconFolder, IconFolderOpen, IconRefresh, IconUpload } from '@tabler/icons-react';
 import { useEffect, useState, type CSSProperties } from 'react';
 import {
   applyQuizFontStyle,
@@ -15,31 +15,26 @@ import {
   type AppSettings,
   type QuizFontStyle,
 } from '../../services/appSettings';
-import { exportFullDataToFile, importFullDataFromFile } from '../../services/fullDataBackupService';
+import { backupFullDataToLocalDirectory, exportFullDataToFile, importFullDataFromFile } from '../../services/fullDataBackupService';
 import {
   clearPreferredLocalDataDirectory,
+  chooseLocalDataDirectory,
+  getInitialLocalDataDirectory,
   getLocalDataDirectory,
-  setPreferredLocalDataDirectory,
   type LocalDataDirectoryState,
 } from '../../services/localDataDirectory';
 
 export function SettingsPage() {
-  const [directoryState, setDirectoryState] = useState<LocalDataDirectoryState>(() => getLocalDataDirectory());
-  const [draftDirectory, setDraftDirectory] = useState(directoryState.directory);
+  const [directoryState, setDirectoryState] = useState<LocalDataDirectoryState>(() => getInitialLocalDataDirectory());
   const [settings, setSettings] = useState<AppSettings>(() => getAppSettings());
   const [exportingData, setExportingData] = useState(false);
+  const [backingUpData, setBackingUpData] = useState(false);
   const [importingData, setImportingData] = useState(false);
   const { setColorScheme } = useMantineColorScheme();
 
-  const saveDirectory = () => {
-    setDirectoryState(setPreferredLocalDataDirectory(draftDirectory.trim()));
-  };
-
-  const resetDirectory = () => {
-    const next = clearPreferredLocalDataDirectory();
-    setDirectoryState(next);
-    setDraftDirectory(next.directory);
-  };
+  useEffect(() => {
+    void getLocalDataDirectory().then(setDirectoryState);
+  }, []);
 
   useEffect(() => {
     return subscribeAppSettings((next) => {
@@ -63,6 +58,37 @@ export function SettingsPage() {
       notifications.show({ color: 'red', title: '导出失败', message: (error as Error).message });
     } finally {
       setExportingData(false);
+    }
+  };
+
+  const handleBackupToDirectory = async () => {
+    setBackingUpData(true);
+    try {
+      const targetFile = await backupFullDataToLocalDirectory(directoryState.directory);
+      notifications.show({ color: 'green', title: '已备份', message: `完整数据已写入 ${targetFile}` });
+    } catch (error) {
+      notifications.show({ color: 'red', title: '备份失败', message: (error as Error).message });
+    } finally {
+      setBackingUpData(false);
+    }
+  };
+
+  const chooseDirectory = async () => {
+    try {
+      const next = await chooseLocalDataDirectory();
+      if (next) {
+        setDirectoryState(next);
+      }
+    } catch (error) {
+      notifications.show({ color: 'red', title: '目录选择失败', message: (error as Error).message });
+    }
+  };
+
+  const resetDirectory = async () => {
+    try {
+      setDirectoryState(await clearPreferredLocalDataDirectory());
+    } catch (error) {
+      notifications.show({ color: 'red', title: '恢复失败', message: (error as Error).message });
     }
   };
 
@@ -93,7 +119,7 @@ export function SettingsPage() {
       <Box className="page-header-sticky">
         <Title order={2}>设置</Title>
         <Text size="sm" c="dimmed" mt={4}>
-          管理本地数据保存策略和桌面端预留能力。
+          管理主题、刷题阅读偏好、本地备份目录和跨设备数据迁移。
         </Text>
       </Box>
 
@@ -200,11 +226,16 @@ export function SettingsPage() {
               数据迁移
             </Text>
             <Text size="sm" c="dimmed" mb="md">
-              导出会包含题库、题目、图片、收藏状态、笔记、做题记录和当前设置；导入会合并到当前设备，相同 ID 的数据会被备份覆盖。
+              导出会包含题库、题目、图片、收藏状态、笔记、做题记录和当前设置；桌面端也可以直接写入固定备份目录。
             </Text>
             <Group>
+              {directoryState.canWriteBackup && (
+                <Button leftSection={<IconDeviceFloppy size={16} />} loading={backingUpData} onClick={() => void handleBackupToDirectory()}>
+                  备份到本地目录
+                </Button>
+              )}
               <Button leftSection={<IconDownload size={16} />} loading={exportingData} onClick={() => void handleExportAllData()}>
-                导出全部数据
+                导出为文件
               </Button>
               <Button variant="default" component="label" leftSection={<IconUpload size={16} />} loading={importingData}>
                 导入全部数据
@@ -227,22 +258,29 @@ export function SettingsPage() {
           </Group>
 
           <Text size="sm" c="dimmed">
-            当前 Web 版本使用 IndexedDB 保存题库。后续打包为桌面应用时，这里会接入系统目录选择，并固定到用户指定的本地题库目录。
+            {directoryState.mode === 'desktop'
+              ? '桌面端默认使用系统应用数据目录保存备份，也支持选择你自己的同步盘或资料目录。题库运行数据仍保存在应用本地数据库中，备份文件用于迁移和恢复。'
+              : 'Web 预览版使用浏览器 IndexedDB 保存题库；导出文件可用于迁移到桌面端。'}
           </Text>
 
           <TextInput
-            label="目录标识"
-            value={draftDirectory}
-            onChange={(event) => setDraftDirectory(event.currentTarget.value)}
+            label="当前备份目录"
+            value={directoryState.directory}
             leftSection={<IconFolder size={16} />}
-            disabled={!directoryState.canChooseDirectory}
+            readOnly
           />
 
+          {directoryState.mode === 'desktop' && (
+            <Text size="xs" c="dimmed">
+              系统默认目录：{directoryState.defaultDirectory}
+            </Text>
+          )}
+
           <Group>
-            <Button onClick={saveDirectory} disabled={!directoryState.canChooseDirectory || !draftDirectory.trim()}>
-              保存目录
+            <Button leftSection={<IconFolderOpen size={16} />} onClick={() => void chooseDirectory()} disabled={!directoryState.canChooseDirectory}>
+              选择目录
             </Button>
-            <Button variant="default" leftSection={<IconRefresh size={16} />} onClick={resetDirectory}>
+            <Button variant="default" leftSection={<IconRefresh size={16} />} onClick={() => void resetDirectory()} disabled={!directoryState.canChooseDirectory}>
               恢复默认
             </Button>
           </Group>

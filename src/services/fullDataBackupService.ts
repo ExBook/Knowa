@@ -3,6 +3,7 @@ import JSZip from 'jszip';
 import { db } from '../repo/db';
 import type { Bank, Note, Question, QuizRecord } from '../shared/types';
 import { defaultAppSettings, getAppSettings, saveAppSettings, type AppSettings } from './appSettings';
+import { isTauriRuntime, writeBlobToLocalDataDirectory } from './localDataDirectory';
 
 interface FullDataBackup {
   version: 1;
@@ -49,7 +50,7 @@ function parseBackup(raw: string): FullDataBackup {
   };
 }
 
-function backupFilename(): string {
+export function backupFilename(): string {
   const date = new Date().toISOString().slice(0, 10);
   return `exlocal-backup-${date}.exlocal`;
 }
@@ -195,7 +196,7 @@ async function parseZipBackup(file: File): Promise<FullDataBackup> {
   };
 }
 
-export async function exportFullDataToFile(): Promise<void> {
+export async function createFullDataBackupBlob(): Promise<Blob> {
   const banks = await db.banks.toArray();
   const questions = await db.questions.toArray();
   const quizRecords = await db.quizRecords.toArray();
@@ -218,7 +219,19 @@ export async function exportFullDataToFile(): Promise<void> {
     imageFolder?.file(filename, dataUrl.split(',')[1] ?? '', { base64: true });
   }
 
-  saveAs(await zip.generateAsync({ type: 'blob' }), backupFilename());
+  return zip.generateAsync({ type: 'blob' });
+}
+
+export async function exportFullDataToFile(): Promise<void> {
+  saveAs(await createFullDataBackupBlob(), backupFilename());
+}
+
+export async function backupFullDataToLocalDirectory(directory?: string): Promise<string> {
+  if (!isTauriRuntime()) {
+    throw new Error('当前不是桌面端环境，无法写入本地备份目录');
+  }
+
+  return writeBlobToLocalDataDirectory(await createFullDataBackupBlob(), backupFilename(), directory);
 }
 
 export async function importFullDataFromFile(file: File): Promise<{

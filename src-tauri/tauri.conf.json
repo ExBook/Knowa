@@ -28,12 +28,32 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "publisher": "ExBook",
+    "category": "Education",
+    "shortDescription": "Local-first personal question bank and quiz app.",
+    "longDescription": "ExLocal helps learners build, practice, review, annotate, and export personal question banks while keeping data local-first.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "fileAssociations": [
+      {
+        "ext": ["exlocal"],
+        "name": "ExLocal Backup",
+        "description": "ExLocal full data backup package",
+        "mimeType": "application/vnd.exlocal.backup",
+        "role": "Editor"
+      },
+      {
+        "ext": ["exbank"],
+        "name": "ExLocal Question Bank",
+        "description": "ExLocal question bank exchange package",
+        "mimeType": "application/vnd.exlocal.bank",
+        "role": "Editor"
+      }
     ],
     "android": {
       "debugApplicationIdSuffix": ".debug"

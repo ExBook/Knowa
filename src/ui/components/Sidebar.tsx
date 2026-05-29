@@ -4,6 +4,7 @@ import { IconAlertCircle, IconBooks, IconChevronLeft, IconChevronRight, IconHist
 import { useEffect, useState, type MouseEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getAppSettings, saveAppSettings, subscribeAppSettings, themePresetColorScheme, themePresetOptions, type ThemePreset } from '../../services/appSettings';
+import { isTauriRuntime } from '../../services/localDataDirectory';
 import { useQuizStore } from '../../stores/quizStore';
 import { AppLogo } from './AppLogo';
 
@@ -29,6 +30,7 @@ export function Sidebar() {
   const quizQuestionCount = useQuizStore((state) => state.questions.length);
   const quizFinished = useQuizStore((state) => state.finished);
   const quizInProgress = location.pathname.includes('/quiz') && quizQuestionCount > 0 && !quizFinished;
+  const runtimeLabel = isTauriRuntime() ? '桌面端' : 'Web 预览';
 
   useEffect(() => {
     return subscribeAppSettings((settings) => {
@@ -130,7 +132,7 @@ export function Sidebar() {
                 <Group gap={8}>
                   <Box style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--success)' }} />
                   <Text size="xs" c="dimmed">
-                    本地模式
+                    {runtimeLabel}
                   </Text>
                 </Group>
                 <Text size="xs" c="dimmed" mt={4}>

@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="ExLocal 是一款本地优先的个人题库与刷题应用，支持富文本录题、Markdown 导入、做题记录、笔记、PDF 导出和桌面端本地备份。"
+    />
+    <title>ExLocal | 搭建你的个人题库</title>
+    <link rel="icon" href="./assets/exlocal-logo.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Lora:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="ExLocal home">
+        <img src="./assets/exlocal-logo.svg" alt="" />
+        <span>ExLocal</span>
+      </a>
+      <nav aria-label="Primary">
+        <a href="#features">功能</a>
+        <a href="#desktop">桌面端</a>
+        <a href="#tutorials">教程</a>
+        <a href="#download">下载</a>
+      </nav>
+      <a class="header-action" href="https://github.com/ExBook/ExLocal/releases/tag/v0.1.0">下载 0.1.0</a>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-scene" aria-hidden="true">
+          <img class="hero-preview" src="./assets/app-preview.svg" alt="" />
+          <div class="floating-panel panel-quiz">
+            <span>倒计时</span>
+            <strong id="countdown">24:00</strong>
+            <small>强制交卷</small>
+          </div>
+          <div class="floating-panel panel-note">
+            <span>我的笔记</span>
+            <strong>86</strong>
+            <small>可选导出</small>
+          </div>
+        </div>
+
+        <div class="hero-copy">
+          <h1 id="hero-title">ExLocal</h1>
+          <p class="slogan">搭建你的个人题库</p>
+          <p class="intro">
+            本地优先的刷题与复习工具。把题库、笔记、错题、做题记录和备份掌握在自己手里，适合考试备考、教学资料整理和长期知识管理。
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="https://github.com/ExBook/ExLocal/releases/tag/v0.1.0">下载桌面版</a>
+            <a class="button secondary" href="https://exlocal.pages.dev/app/">在线体验</a>
+          </div>
+          <div class="proof-row" aria-label="Product highlights">
+            <span>本地存储</span>
+            <span>Markdown 导入</span>
+            <span>PDF 导出</span>
+            <span>Tauri 桌面端</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="section">
+        <div class="section-heading">
+          <h2>从录题到复盘，一套完整学习工作流</h2>
+          <p>ExLocal 不是只存题的表格，而是把录入、练习、回顾、笔记和迁移打通的本地学习系统。</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <span class="feature-icon">01</span>
+            <h3>富文本题目编辑器</h3>
+            <p>支持图片、公式、行内代码、代码块、解析、章节、节与知识点索引，适合录入复杂学科题目。</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">02</span>
+            <h3>Markdown 批量导入</h3>
+            <p>模板按钮、实时预览、格式提醒与公式渲染，让大量题目录入更快，也更不容易误操作。</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">03</span>
+            <h3>练习与考试模式</h3>
+            <p>可按顺序、随机、章节或知识点刷题；支持统一交卷、未答题提示和自定义倒计时。</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">04</span>
+            <h3>错题、收藏与笔记</h3>
+            <p>按题库或章节组织复盘内容，支持选择性重做、编辑笔记和导出有笔记的题目。</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">05</span>
+            <h3>做题记录回顾</h3>
+            <p>按日期和题组抽屉展示历史练习，能看到每次提交的答案、正确答案和解析。</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">06</span>
+            <h3>专业导出</h3>
+            <p>题库、错题、收藏、笔记和完整数据都可导出；PDF 带 ExLocal 标识，适合打印和分享。</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="desktop" class="section split-section">
+        <div>
+          <h2>桌面端为长期资料准备</h2>
+          <p>
+            桌面应用保留 Web 版的轻量体验，同时增加系统级图标、文件关联、本地备份目录选择和跨设备迁移能力。默认备份路径根据平台生成，也可以改到同步盘或资料目录。
+          </p>
+          <ul class="check-list">
+            <li>`.exlocal` 完整备份包含图片、设置、记录和笔记。</li>
+            <li>`.exbank` 题库包适合分享单个题库。</li>
+            <li>桌面端文案会提示固定本地目录，Web 预览版使用下载导出。</li>
+          </ul>
+        </div>
+        <div class="desktop-panel" aria-label="Desktop backup preview">
+          <div class="window-bar">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <h3>本地题库目录</h3>
+          <p>系统默认目录</p>
+          <code id="backup-path">~/Library/Application Support/com.exbook.exlocal/backups</code>
+          <div class="desktop-actions">
+            <button type="button">选择目录</button>
+            <button type="button">备份到本地目录</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="section showcase-section">
+        <img src="./assets/app-preview.svg" alt="ExLocal app interface preview" />
+        <div>
+          <h2>题库、刷题、复盘在同一张地图里</h2>
+          <p>题库卡片显示进度，刷题结束后以颜色导航回顾每一道题。错题集、收藏和我的笔记都可以再次筛选、重做和导出。</p>
+        </div>
+      </section>
+
+      <section id="tutorials" class="section">
+        <div class="section-heading">
+          <h2>快速上手</h2>
+          <p>从空白到第一轮复盘，只需要四步。</p>
+        </div>
+        <div class="steps">
+          <article>
+            <strong>1</strong>
+            <h3>创建题库</h3>
+            <p>设置名称、标签和浅色卡片颜色，让不同科目更容易区分。</p>
+          </article>
+          <article>
+            <strong>2</strong>
+            <h3>录入或导入题目</h3>
+            <p>少量题目用富文本编辑器，大量题目用 Markdown 模板和实时预览。</p>
+          </article>
+          <article>
+            <strong>3</strong>
+            <h3>选择刷题方式</h3>
+            <p>按章节、节、知识点、顺序或随机练习，也可以开启考试倒计时。</p>
+          </article>
+          <article>
+            <strong>4</strong>
+            <h3>复盘与迁移</h3>
+            <p>查看题组记录、整理笔记，最后导出 PDF 或 `.exlocal` 完整备份。</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="download" class="download-band">
+        <div>
+          <h2>开始搭建你的个人题库</h2>
+          <p>下载桌面版用于长期学习，或先打开在线体验了解完整工作流。</p>
+        </div>
+        <div class="download-actions">
+          <a class="button primary" href="https://github.com/ExBook/ExLocal/releases/tag/v0.1.0">下载 ExLocal 0.1.0</a>
+          <a class="button secondary" href="https://exlocal.pages.dev/app/">在线体验</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="brand footer-brand">
+        <img src="./assets/exlocal-logo.svg" alt="" />
+        <span>ExLocal</span>
+      </div>
+      <div>
+        <a href="https://github.com/ExBook/ExLocal">GitHub</a>
+        <a href="https://github.com/ExBook/ExLocal/blob/main/docs/user-guide.md">使用教程</a>
+        <a href="https://github.com/ExBook/ExLocal/blob/main/docs/design.md">设计文档</a>
+      </div>
+    </footer>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
