@@ -590,6 +590,60 @@ pre {
   margin-top: auto;
 }
 
+.download-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.copy-link-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.copy-link-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.copy-link-btn:hover {
+  background: var(--accent);
+  color: var(--text);
+}
+
+.copy-link-btn.copied {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.quark-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.quark-download-btn {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 .muted-card {
   background: color-mix(in srgb, var(--accent) 7%, var(--surface));
 }
