@@ -65,12 +65,12 @@ setupDemoEntry();
 mobileDemoQuery.addEventListener('change', setupDemoEntry);
 
 document.querySelectorAll('.copy-link-btn').forEach((btn) => {
+  let timer;
   btn.addEventListener('click', async () => {
     const url = btn.dataset.url;
+    clearTimeout(timer);
     try {
       await navigator.clipboard.writeText(url);
-      btn.classList.add('copied');
-      setTimeout(() => btn.classList.remove('copied'), 2000);
     } catch {
       const input = document.createElement('input');
       input.value = url;
@@ -79,5 +79,7 @@ document.querySelectorAll('.copy-link-btn').forEach((btn) => {
       document.execCommand('copy');
       document.body.removeChild(input);
     }
+    btn.classList.add('copied');
+    timer = setTimeout(() => btn.classList.remove('copied'), 1500);
   });
 });

@@ -628,6 +628,32 @@ pre {
   border-color: var(--primary);
 }
 
+.copy-link-btn::after {
+  content: "已复制";
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--surface);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.copy-link-btn.copied::after {
+  opacity: 1;
+}
+
+.copy-link-btn {
+  position: relative;
+}
+
 .quark-row {
   display: flex;
   align-items: center;
