@@ -196,7 +196,7 @@ export function SettingsPage() {
               <Text size="xs" c="dimmed" mb={6}>
                 预览
               </Text>
-              <Text className="quiz-font-preview-title">ExLocal Academic Preview</Text>
+              <Text className="quiz-font-preview-title">Knowa Academic Preview</Text>
               <Text className="quiz-font-preview-body">搭建你的个人题库：函数、导数与概率统计 A/B/C/D。</Text>
             </Box>
           </Box>

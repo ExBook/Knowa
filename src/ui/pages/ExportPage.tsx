@@ -257,7 +257,7 @@ export function ExportPage() {
             >
               <Group justify="space-between" mb="md" style={{ borderBottom: '1px solid #e5e0d5', paddingBottom: 10 }}>
                 <Text fw={800} c="#3b4b6b">
-                  ExLocal
+                  Knowa
                 </Text>
                 <Text size="xs" c="dimmed">
                   搭建你的个人题库

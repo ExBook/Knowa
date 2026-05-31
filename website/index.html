@@ -5,190 +5,232 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="ExLocal 是一款本地优先的个人题库与刷题应用，支持富文本录题、Markdown 导入、做题记录、笔记、PDF 导出和桌面端本地备份。"
+      content="Knowa 是一款本地优先的个人题库与刷题应用，支持富文本录题、Markdown 导入、错题复盘、笔记、PDF 导出和桌面端本地备份。"
     />
-    <title>ExLocal | 搭建你的个人题库</title>
+    <title>Knowa | 搭建你的个人题库</title>
+    <meta name="theme-color" content="#fbf7ef" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="./assets/exlocal-logo.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Lora:wght@600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:wght@600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="#top" aria-label="ExLocal home">
-        <img src="./assets/exlocal-logo.svg" alt="" />
-        <span>ExLocal</span>
-      </a>
-      <nav aria-label="Primary">
-        <a href="#features">功能</a>
-        <a href="#desktop">桌面端</a>
-        <a href="#tutorials">教程</a>
-        <a href="#download">下载</a>
-      </nav>
-      <a class="header-action" href="https://github.com/ExBook/ExLocal/releases/tag/v0.1.0">下载 0.1.0</a>
+      <div class="container header-inner">
+        <a class="brand" href="./index.html" aria-label="Knowa 首页">
+          <img src="./assets/exlocal-logo.svg" alt="" />
+          <span>Knowa</span>
+        </a>
+        <nav class="site-nav" aria-label="主导航">
+          <a class="is-active" href="./index.html">主页</a>
+          <a href="./tutorial.html">教程</a>
+          <a href="./demo.html">在线体验</a>
+          <a href="./changelog.html">更新日志</a>
+        </nav>
+        <div class="header-actions">
+          <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换明暗主题">
+            <span class="theme-toggle-icon" aria-hidden="true"></span>
+          </button>
+          <a class="button button-small button-primary" href="#download">下载</a>
+        </div>
+      </div>
     </header>
 
-    <main id="top">
-      <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-scene" aria-hidden="true">
-          <img class="hero-preview" src="./assets/app-preview.svg" alt="" />
-          <div class="floating-panel panel-quiz">
-            <span>倒计时</span>
-            <strong id="countdown">24:00</strong>
-            <small>强制交卷</small>
+    <main>
+      <section class="hero-section">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <h1>搭建你的个人题库</h1>
+            <p class="hero-lead">
+              Knowa 是一款本地优先的题库、刷题、笔记与复盘工具。它把录题、导入、练习、错题、收藏、做题记录、PDF 打印和完整备份放在一个安静可靠的学习工作流里。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#download">
+                下载桌面版
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></svg>
+              </a>
+              <a class="button button-secondary" href="./demo.html">
+                在线体验
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m0 0-6-6m6 6-6 6"/></svg>
+              </a>
+            </div>
+            <dl class="hero-proof">
+              <div><dt>本地优先</dt><dd>题库、图片和记录优先留在你的设备里</dd></div>
+              <div><dt>完整复盘</dt><dd>错题、收藏、笔记和题组记录可追踪</dd></div>
+              <div><dt>专业导出</dt><dd>PDF、题库包和完整备份都可迁移</dd></div>
+            </dl>
           </div>
-          <div class="floating-panel panel-note">
-            <span>我的笔记</span>
-            <strong>86</strong>
-            <small>可选导出</small>
+          <div class="product-shot hero-shot app-preview-frame" aria-label="Knowa 产品界面预览">
+            <div class="mac-window-bar" aria-hidden="true">
+              <div class="mac-window-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div class="mac-window-title">
+                <strong>Knowa</strong>
+                <span>个人题库 · 本地优先</span>
+              </div>
+              <span class="mac-window-chip">Preview</span>
+            </div>
+            <div class="app-preview-screen">
+              <img class="app-shot-light" src="./assets/app-real-home.png" alt="Knowa 浅色主题题库页面截图" />
+              <img class="app-shot-dark" src="./assets/app-real-home-dark.png" alt="Knowa 深色主题题库页面截图" />
+            </div>
           </div>
         </div>
+      </section>
 
-        <div class="hero-copy">
-          <h1 id="hero-title">ExLocal</h1>
-          <p class="slogan">搭建你的个人题库</p>
-          <p class="intro">
-            本地优先的刷题与复习工具。把题库、笔记、错题、做题记录和备份掌握在自己手里，适合考试备考、教学资料整理和长期知识管理。
-          </p>
-          <div class="hero-actions">
-            <a class="button primary" href="https://github.com/ExBook/ExLocal/releases/tag/v0.1.0">下载桌面版</a>
-            <a class="button secondary" href="https://exlocal.pages.dev/app/">在线体验</a>
-          </div>
-          <div class="proof-row" aria-label="Product highlights">
-            <span>本地存储</span>
-            <span>Markdown 导入</span>
-            <span>PDF 导出</span>
-            <span>Tauri 桌面端</span>
+      <section class="section compact-section">
+        <div class="container">
+          <div class="feature-strip">
+            <span>富文本录题</span>
+            <span>Markdown 批量导入</span>
+            <span>章节与知识点刷题</span>
+            <span>自定义倒计时</span>
+            <span>错题集与笔记</span>
+            <span>桌面端备份目录</span>
           </div>
         </div>
       </section>
 
       <section id="features" class="section">
-        <div class="section-heading">
-          <h2>从录题到复盘，一套完整学习工作流</h2>
-          <p>ExLocal 不是只存题的表格，而是把录入、练习、回顾、笔记和迁移打通的本地学习系统。</p>
-        </div>
-        <div class="feature-grid">
-          <article class="feature-card">
-            <span class="feature-icon">01</span>
-            <h3>富文本题目编辑器</h3>
-            <p>支持图片、公式、行内代码、代码块、解析、章节、节与知识点索引，适合录入复杂学科题目。</p>
-          </article>
-          <article class="feature-card">
-            <span class="feature-icon">02</span>
-            <h3>Markdown 批量导入</h3>
-            <p>模板按钮、实时预览、格式提醒与公式渲染，让大量题目录入更快，也更不容易误操作。</p>
-          </article>
-          <article class="feature-card">
-            <span class="feature-icon">03</span>
-            <h3>练习与考试模式</h3>
-            <p>可按顺序、随机、章节或知识点刷题；支持统一交卷、未答题提示和自定义倒计时。</p>
-          </article>
-          <article class="feature-card">
-            <span class="feature-icon">04</span>
-            <h3>错题、收藏与笔记</h3>
-            <p>按题库或章节组织复盘内容，支持选择性重做、编辑笔记和导出有笔记的题目。</p>
-          </article>
-          <article class="feature-card">
-            <span class="feature-icon">05</span>
-            <h3>做题记录回顾</h3>
-            <p>按日期和题组抽屉展示历史练习，能看到每次提交的答案、正确答案和解析。</p>
-          </article>
-          <article class="feature-card">
-            <span class="feature-icon">06</span>
-            <h3>专业导出</h3>
-            <p>题库、错题、收藏、笔记和完整数据都可导出；PDF 带 ExLocal 标识，适合打印和分享。</p>
-          </article>
-        </div>
-      </section>
-
-      <section id="desktop" class="section split-section">
-        <div>
-          <h2>桌面端为长期资料准备</h2>
-          <p>
-            桌面应用保留 Web 版的轻量体验，同时增加系统级图标、文件关联、本地备份目录选择和跨设备迁移能力。默认备份路径根据平台生成，也可以改到同步盘或资料目录。
-          </p>
-          <ul class="check-list">
-            <li>`.exlocal` 完整备份包含图片、设置、记录和笔记。</li>
-            <li>`.exbank` 题库包适合分享单个题库。</li>
-            <li>桌面端文案会提示固定本地目录，Web 预览版使用下载导出。</li>
-          </ul>
-        </div>
-        <div class="desktop-panel" aria-label="Desktop backup preview">
-          <div class="window-bar">
-            <span></span>
-            <span></span>
-            <span></span>
+        <div class="container">
+          <div class="section-heading">
+            <p class="section-kicker">核心功能</p>
+            <h2>从题目录入到复盘导出，一条顺手的学习路径</h2>
+            <p>Knowa 面向长期使用，不把功能藏在复杂菜单里，也不让题库散落在零碎文件中。</p>
           </div>
-          <h3>本地题库目录</h3>
-          <p>系统默认目录</p>
-          <code id="backup-path">~/Library/Application Support/com.exbook.exlocal/backups</code>
-          <div class="desktop-actions">
-            <button type="button">选择目录</button>
-            <button type="button">备份到本地目录</button>
+          <div class="feature-grid">
+            <article class="feature-card">
+              <span class="feature-index">01</span>
+              <h3>富文本题目编辑</h3>
+              <p>题干、选项、解析和笔记支持图片、公式、行内代码、代码块、缩放与对齐，适合数学、编程、医学、法学等复杂题型。</p>
+            </article>
+            <article class="feature-card">
+              <span class="feature-index">02</span>
+              <h3>Markdown 快速导入</h3>
+              <p>提供单选、多选、判断快捷模板，右侧实时预览会渲染公式和代码。关闭前会提示未保存内容，适合批量整理资料。</p>
+            </article>
+            <article class="feature-card">
+              <span class="feature-index">03</span>
+              <h3>多维度刷题</h3>
+              <p>支持按题库、章节、节、知识点、顺序或随机练习。考试模式可统一交卷，也可设置倒计时，到时自动提交。</p>
+            </article>
+            <article class="feature-card">
+              <span class="feature-index">04</span>
+              <h3>答题后精准回顾</h3>
+              <p>完成页用圆形题号和颜色标识正误。回顾时保留用户答案、正确答案、解析和跳回完成页入口。</p>
+            </article>
+            <article class="feature-card">
+              <span class="feature-index">05</span>
+              <h3>收藏、错题和笔记</h3>
+              <p>收藏和错题可按题库或章节分组，支持选择性重做与导出。我的笔记突出笔记内容，并能回看题目与做题记录。</p>
+            </article>
+            <article class="feature-card">
+              <span class="feature-index">06</span>
+              <h3>本地备份与专业打印</h3>
+              <p>桌面端可设置固定备份目录，完整 `.exlocal` 备份包含图片。打印和 PDF 会带产品标识，适合试卷和学术笔记。</p>
+            </article>
           </div>
         </div>
       </section>
 
-      <section class="section showcase-section">
-        <img src="./assets/app-preview.svg" alt="ExLocal app interface preview" />
-        <div>
-          <h2>题库、刷题、复盘在同一张地图里</h2>
-          <p>题库卡片显示进度，刷题结束后以颜色导航回顾每一道题。错题集、收藏和我的笔记都可以再次筛选、重做和导出。</p>
+      <section class="section section-panel">
+        <div class="container workflow-layout">
+          <div>
+            <p class="section-kicker">真实工作流</p>
+            <h2>题库像资料库，刷题像考试，复盘像笔记系统</h2>
+            <p class="section-copy">
+              每个题库卡片显示做题进度和标签。进入题库后可以搜索、筛选、导入、编辑、打印；刷题结束后，系统保留题组记录，方便你回到某一次练习重新梳理。
+            </p>
+            <div class="workflow-list">
+              <div><strong>录题</strong><span>富文本逐题录入，或用 Markdown 模板批量导入。</span></div>
+              <div><strong>练习</strong><span>按章节、知识点、顺序、随机或倒计时完成练习。</span></div>
+              <div><strong>复盘</strong><span>查看正误、答案、解析、笔记和每次题组记录。</span></div>
+              <div><strong>迁移</strong><span>导出题库、PDF 或包含图片的完整数据包。</span></div>
+            </div>
+          </div>
+          <div class="product-shot app-preview-frame">
+            <div class="mac-window-bar" aria-hidden="true">
+              <div class="mac-window-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div class="mac-window-title">
+                <strong>Knowa</strong>
+                <span>题库进度 · 复盘入口</span>
+              </div>
+              <span class="mac-window-chip">App</span>
+            </div>
+            <div class="app-preview-screen">
+              <img class="app-shot-light" src="./assets/app-real-home.png" alt="Knowa 浅色主题应用工作流截图" />
+              <img class="app-shot-dark" src="./assets/app-real-home-dark.png" alt="Knowa 深色主题应用工作流截图" />
+            </div>
+          </div>
         </div>
       </section>
 
-      <section id="tutorials" class="section">
-        <div class="section-heading">
-          <h2>快速上手</h2>
-          <p>从空白到第一轮复盘，只需要四步。</p>
-        </div>
-        <div class="steps">
-          <article>
-            <strong>1</strong>
-            <h3>创建题库</h3>
-            <p>设置名称、标签和浅色卡片颜色，让不同科目更容易区分。</p>
-          </article>
-          <article>
-            <strong>2</strong>
-            <h3>录入或导入题目</h3>
-            <p>少量题目用富文本编辑器，大量题目用 Markdown 模板和实时预览。</p>
-          </article>
-          <article>
-            <strong>3</strong>
-            <h3>选择刷题方式</h3>
-            <p>按章节、节、知识点、顺序或随机练习，也可以开启考试倒计时。</p>
-          </article>
-          <article>
-            <strong>4</strong>
-            <h3>复盘与迁移</h3>
-            <p>查看题组记录、整理笔记，最后导出 PDF 或 `.exlocal` 完整备份。</p>
-          </article>
+      <section id="download" class="section">
+        <div class="container">
+          <div class="section-heading">
+            <p class="section-kicker">下载 Knowa</p>
+            <h2>选择适合你系统的桌面版</h2>
+            <p>当前发布版本为 v0.1.0。macOS 后续构建会使用 Universal 包，避免 Intel Runner 长时间排队。</p>
+          </div>
+          <div class="download-grid">
+            <article class="download-card">
+              <h3>macOS</h3>
+              <p>适合 Apple Silicon 与 Intel Mac。若当前 Release 中没有 Universal 包，可先下载 Apple Silicon 包或等待下一次自动构建。</p>
+              <a class="button button-primary" href="https://github.com/ExBook/Knowa/releases/tag/v0.1.0">查看 macOS 下载</a>
+            </article>
+            <article class="download-card">
+              <h3>Windows</h3>
+              <p>普通电脑选择 x64 安装包，ARM 设备可以尝试 ARM64 安装包。</p>
+              <a class="button button-secondary" href="https://github.com/ExBook/Knowa/releases/download/v0.1.0/Knowa_0.1.0_x64-setup.exe">下载 Windows x64</a>
+            </article>
+            <article class="download-card">
+              <h3>Linux</h3>
+              <p>推荐优先使用 AppImage；也可以按发行版选择 deb 或 rpm。</p>
+              <a class="button button-secondary" href="https://github.com/ExBook/Knowa/releases/download/v0.1.0/Knowa_0.1.0_amd64.AppImage">下载 Linux AppImage</a>
+            </article>
+            <article class="download-card muted-card">
+              <h3>先体验再安装</h3>
+              <p>在线体验会打开真实 Knowa 网页端，并自动准备覆盖单选、多选、判断、公式、代码和图片的示例题库。</p>
+              <a class="button button-secondary" href="./demo.html">打开在线体验</a>
+            </article>
+          </div>
         </div>
       </section>
 
-      <section id="download" class="download-band">
-        <div>
-          <h2>开始搭建你的个人题库</h2>
-          <p>下载桌面版用于长期学习，或先打开在线体验了解完整工作流。</p>
-        </div>
-        <div class="download-actions">
-          <a class="button primary" href="https://github.com/ExBook/ExLocal/releases/tag/v0.1.0">下载 ExLocal 0.1.0</a>
-          <a class="button secondary" href="https://exlocal.pages.dev/app/">在线体验</a>
+      <section class="section final-cta">
+        <div class="container cta-band">
+          <div>
+            <h2>把资料变成能反复练习的个人题库</h2>
+            <p>下载桌面端用于长期学习，或者先用在线体验看一遍完整流程。</p>
+          </div>
+          <div class="cta-actions">
+            <a class="button button-primary" href="#download">下载 Knowa</a>
+            <a class="button button-secondary" href="./tutorial.html">查看教程</a>
+          </div>
         </div>
       </section>
     </main>
 
     <footer class="site-footer">
-      <div class="brand footer-brand">
-        <img src="./assets/exlocal-logo.svg" alt="" />
-        <span>ExLocal</span>
-      </div>
-      <div>
-        <a href="https://github.com/ExBook/ExLocal">GitHub</a>
-        <a href="https://github.com/ExBook/ExLocal/blob/main/docs/user-guide.md">使用教程</a>
-        <a href="https://github.com/ExBook/ExLocal/blob/main/docs/design.md">设计文档</a>
+      <div class="container footer-inner">
+        <div class="brand footer-brand">
+          <img src="./assets/exlocal-logo.svg" alt="" />
+          <span>Knowa</span>
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/ExBook/Knowa">GitHub</a>
+          <a href="./tutorial.html">教程</a>
+          <a href="./changelog.html">更新日志</a>
+        </div>
       </div>
     </footer>
 

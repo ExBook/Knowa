@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Knowa 更新日志：查看每个版本的发布时间、功能变化、桌面端打包和已知限制。"
+    />
+    <title>Knowa 更新日志 | 版本时间线</title>
+    <meta name="theme-color" content="#fbf7ef" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="./assets/exlocal-logo.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="./index.html" aria-label="Knowa 首页">
+          <img src="./assets/exlocal-logo.svg" alt="" />
+          <span>Knowa</span>
+        </a>
+        <nav class="site-nav" aria-label="主导航">
+          <a href="./index.html">主页</a>
+          <a href="./tutorial.html">教程</a>
+          <a href="./demo.html">在线体验</a>
+          <a class="is-active" href="./changelog.html">更新日志</a>
+        </nav>
+        <div class="header-actions">
+          <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换明暗主题">
+            <span class="theme-toggle-icon" aria-hidden="true"></span>
+          </button>
+          <a class="button button-small button-primary" href="https://github.com/ExBook/Knowa/releases/tag/v0.1.0">下载</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="page-hero">
+        <div class="container">
+          <p class="section-kicker">更新日志</p>
+          <h1>Knowa 版本时间线</h1>
+          <p>每次发布都会记录功能变化、桌面端打包状态、下载建议和已知限制，方便你判断是否升级。</p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container changelog-layout">
+          <article class="release-card current-release">
+            <div class="release-meta">
+              <span>v0.1.0</span>
+              <time datetime="2026-05-29">2026-05-29</time>
+            </div>
+            <h2>第一个桌面端公开版本</h2>
+            <p>这个版本完成了 Knowa 的核心学习闭环：建题库、录题、导入、刷题、交卷、复盘、笔记、错题、收藏、导出和完整备份。</p>
+            <div class="release-grid">
+              <section>
+                <h3>新增功能</h3>
+                <ul>
+                  <li>支持单选、多选、判断题，以及章节、节、知识点索引。</li>
+                  <li>支持富文本题干、选项、解析和笔记，包含图片、公式和代码。</li>
+                  <li>支持 Markdown 模板导入、实时预览、格式提醒和公式渲染。</li>
+                  <li>支持练习模式、考试模式、统一交卷和自定义倒计时。</li>
+                  <li>支持答题完成页题号导航、颜色正误标识和题目回顾。</li>
+                  <li>支持收藏、错题集、我的笔记和题组做题记录。</li>
+                </ul>
+              </section>
+              <section>
+                <h3>导出与桌面端</h3>
+                <ul>
+                  <li>支持题库、收藏、错题和笔记的选择性导出与打印。</li>
+                  <li>支持 `.exbank` 题库包和 `.exlocal` 完整备份包。</li>
+                  <li>完整备份包含题库、题目、记录、设置、笔记和图片。</li>
+                  <li>桌面端支持默认本地备份目录和用户自定义目录。</li>
+                  <li>GitHub Release 生成 macOS、Windows 和 Linux 安装包。</li>
+                </ul>
+              </section>
+              <section>
+                <h3>后续改进</h3>
+                <ul>
+                  <li>优化 macOS 打包为 Universal，减少 Intel Runner 排队问题。</li>
+                  <li>优化桌面端启动白屏和 macOS 关闭按钮行为。</li>
+                  <li>持续改进官网、示例题库、教程和发布说明。</li>
+                </ul>
+              </section>
+            </div>
+          </article>
+
+          <article class="release-card">
+            <div class="release-meta">
+              <span>下一阶段</span>
+              <time datetime="2026-05-31">规划中</time>
+            </div>
+            <h2>桌面体验和资料迁移增强</h2>
+            <p>下一阶段会继续提升桌面端原生体验、导出排版、示例题库质量和长期资料维护能力。</p>
+            <ul>
+              <li>更细致的桌面端路径提示和备份恢复校验。</li>
+              <li>更丰富的教程截图和真实使用场景。</li>
+              <li>持续补充导出格式和打印版式。</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <div class="brand footer-brand">
+          <img src="./assets/exlocal-logo.svg" alt="" />
+          <span>Knowa</span>
+        </div>
+        <div class="footer-links">
+          <a href="./index.html">主页</a>
+          <a href="./tutorial.html">教程</a>
+          <a href="https://github.com/ExBook/Knowa/releases/tag/v0.1.0">Release</a>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

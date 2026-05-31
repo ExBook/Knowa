@@ -253,7 +253,7 @@ export async function generatePrecisePDF(questions: QuestionData[], options: Exp
       columns: [
         {
           text: [
-            { text: 'ExLocal', bold: true, color: '#3b4b6b' },
+            { text: 'Knowa', bold: true, color: '#3b4b6b' },
             { text: '  搭建你的个人题库', fontSize: 8, color: '#7a7568' },
           ],
         },
@@ -263,7 +263,7 @@ export async function generatePrecisePDF(questions: QuestionData[], options: Exp
     footer: (currentPage: number, pageCount: number) => ({
       margin: [42, 0, 42, 22],
       columns: [
-        { text: `ExLocal · ${options.bankName}`, fontSize: 8, color: '#a8a294' },
+        { text: `Knowa · ${options.bankName}`, fontSize: 8, color: '#a8a294' },
         { text: `${currentPage} / ${pageCount}`, alignment: 'right', fontSize: 8, color: '#a8a294' },
       ],
     }),
@@ -314,7 +314,7 @@ export async function generateQuickPDF(element: HTMLElement, filename: string): 
 
     document.setFontSize(11);
     document.setTextColor(59, 75, 107);
-    document.text('ExLocal', margin, margin);
+    document.text('Knowa', margin, margin);
     document.setFontSize(8);
     document.setTextColor(122, 117, 104);
     document.text('搭建你的个人题库', margin + 52, margin);
@@ -329,7 +329,7 @@ export async function generateQuickPDF(element: HTMLElement, filename: string): 
 
     document.setFontSize(8);
     document.setTextColor(168, 162, 148);
-    document.text(`ExLocal · ${filename}`, margin, pageHeight - margin + 6);
+    document.text(`Knowa · ${filename}`, margin, pageHeight - margin + 6);
     document.text(`${page + 1} / ${pageCount}`, pageWidth - margin, pageHeight - margin + 6, { align: 'right' });
   }
 

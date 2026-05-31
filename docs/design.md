@@ -1,12 +1,12 @@
-# ExLocal Design and Architecture
+# Knowa Design and Architecture
 
 Version: 0.1.0
 
-ExLocal is a local-first question-bank application for building, practicing, reviewing, annotating, and exporting personal study materials. It ships as a web app and as a Tauri desktop app. The product promise is simple: users own their question banks, records, notes, images, and backups.
+Knowa is a local-first question-bank application for building, practicing, reviewing, annotating, and exporting personal study materials. It ships as a web app and as a Tauri desktop app. The product promise is simple: users own their question banks, records, notes, images, and backups.
 
 ## Product Scope
 
-ExLocal supports the complete lifecycle of a personal question bank:
+Knowa supports the complete lifecycle of a personal question bank:
 
 - Create and manage multiple banks.
 - Add single-choice, multiple-choice, and true/false questions.
@@ -57,7 +57,7 @@ Typography:
 
 Logo:
 
-- Product name: ExLocal.
+- Product name: Knowa.
 - Slogan: `搭建你的个人题库`.
 - The mark is a flat rounded study-book icon. The same source is used for in-app branding, favicon, and Tauri app icons.
 
@@ -85,7 +85,7 @@ Main directories:
 - `src/stores`: Zustand stores.
 - `src/shared/types.ts`: shared domain model.
 - `src-tauri`: desktop shell, permissions, icons, and Tauri config.
-- `website`: standalone public website for Cloudflare Pages.
+- `website`: standalone public website for Cloudflare Pages, including home, tutorial, online demo, and changelog pages.
 - `docs`: stable project documentation.
 
 Route map:
@@ -183,7 +183,7 @@ IndexedDB stores:
 
 ## Rich Text Format
 
-ExLocal stores question bodies, options, explanations, and notes as TipTap JSON. Supported content includes:
+Knowa stores question bodies, options, explanations, and notes as TipTap JSON. Supported content includes:
 
 - paragraph
 - inline code
@@ -243,7 +243,7 @@ PDF export:
 
 - Precise export uses pdfmake.
 - Quick print uses html2canvas + jsPDF.
-- PDF output includes ExLocal branding in header/footer.
+- PDF output includes Knowa branding in header/footer.
 - Long unbroken text is normalized with zero-width break hints to prevent pdfmake layout stalls.
 - Images in PDF text output use human-readable placeholders instead of data URLs.
 
@@ -322,7 +322,9 @@ Current desktop features:
 - Default backup directory resolved from Tauri `appLocalDataDir()/backups`.
 - Web fallback remains download-based and IndexedDB-backed.
 - File associations for `.exlocal` and `.exbank`.
-- Bundle metadata identifies ExLocal as an education app.
+- Bundle metadata identifies Knowa as an education app.
+- Lightweight HTML startup screen renders before React hydrates to avoid a blank WebView.
+- On macOS, clicking the window close button hides the window; reopening from Dock restores and focuses the main window.
 
 Desktop storage model:
 
@@ -348,12 +350,12 @@ Desktop permissions:
 
 The GitHub Actions release workflow builds:
 
-- macOS Apple Silicon (`aarch64-apple-darwin`)
-- macOS Intel (`x86_64-apple-darwin`)
+- macOS Universal (`universal-apple-darwin`) on `macos-14`
 - Windows x64
 - Linux x64
+- Experimental Windows ARM64 and Linux ARM64
 
-The workflow uses the official Tauri GitHub Action, creates/updates the `v0.1.0` release, and uploads native installers/artifacts.
+The workflow uses the official Tauri GitHub Action, creates/updates the release, writes Chinese release notes, and uploads native installers/artifacts. macOS uses a Universal target so the release does not depend on a separate Intel hosted runner.
 
 ## Website
 
@@ -361,20 +363,18 @@ The public website is a standalone static site in `website/`.
 
 It includes:
 
-- Product hero with animated app mock.
-- Download links to GitHub releases.
-- Online experience link to the hosted app.
-- Feature sections.
-- Desktop/local-first explanation.
-- Step-by-step tutorials.
-- Deployment instructions for Cloudflare Pages.
+- `index.html`: product homepage with feature narrative, real product preview, platform download buttons, and online demo entry.
+- `tutorial.html`: detailed usage tutorial covering installation, banks, rich text questions, Markdown import, quizzes, records, notes, export, and desktop backups.
+- `demo.html`: online demo entry and mobile guard; desktop users are redirected into the real Knowa web app under `/app/`.
+- `changelog.html`: version timeline and release content.
 
 Website implementation rules:
 
 - The site is independent of the app router.
 - The hero uses an immersive product interface scene, not a generic marketing illustration.
 - Download links point to GitHub Releases.
-- The online demo link should be updated after the Cloudflare deployment route is final.
+- The online demo includes single choice, multiple choice, true/false, inline code, code blocks, formula-like content, and image-like content.
+- Mobile browsers must not load the interactive demo; they show guidance to use the desktop app or a larger screen.
 - Website build output is `website/dist`.
 
 ## Testing Strategy

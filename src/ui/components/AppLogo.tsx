@@ -18,7 +18,7 @@ export function AppLogo({ compact }: AppLogoProps) {
       {!compact && (
         <Box style={{ minWidth: 0 }}>
           <Text className="app-logo-wordmark" component="div">
-            ExLocal
+            Knowa
           </Text>
           <Text className="app-logo-slogan" component="div">
             搭建你的个人题库

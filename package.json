@@ -1,5 +1,5 @@
 {
-  "name": "exlocal",
+  "name": "knowa",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -11,9 +11,9 @@
     "tauri": "tauri",
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build",
-    "site:dev": "vite website --host 0.0.0.0",
-    "site:build": "vite build website",
-    "site:preview": "vite preview website --host 0.0.0.0"
+    "site:dev": "vite --config website/vite.config.ts --host 0.0.0.0",
+    "site:build": "node scripts/build-website.mjs",
+    "site:preview": "vite preview --config website/vite.config.ts --host 0.0.0.0"
   },
   "dependencies": {
     "@mantine/charts": "^7.17.8",

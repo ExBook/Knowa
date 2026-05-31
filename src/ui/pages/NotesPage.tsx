@@ -165,7 +165,7 @@ export function NotesPage() {
           includeStats: false,
         },
       );
-      saveAs(blob, 'ExLocal-我的笔记.pdf');
+      saveAs(blob, 'Knowa-我的笔记.pdf');
     } catch (error) {
       notifications.show({ color: 'red', title: '导出失败', message: (error as Error).message });
     } finally {

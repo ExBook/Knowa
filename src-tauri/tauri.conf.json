@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "ExLocal",
+  "productName": "Knowa",
   "version": "0.1.0",
   "identifier": "com.exbook.exlocal",
   "build": {
@@ -12,13 +12,14 @@
   "app": {
     "windows": [
       {
-        "title": "ExLocal",
+        "title": "Knowa",
         "width": 1200,
         "height": 800,
         "minWidth": 800,
         "minHeight": 600,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "backgroundColor": "#fbf7ef"
       }
     ],
     "security": {
@@ -31,7 +32,7 @@
     "publisher": "ExBook",
     "category": "Education",
     "shortDescription": "Local-first personal question bank and quiz app.",
-    "longDescription": "ExLocal helps learners build, practice, review, annotate, and export personal question banks while keeping data local-first.",
+    "longDescription": "Knowa helps learners build, practice, review, annotate, and export personal question banks while keeping data local-first.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -42,15 +43,15 @@
     "fileAssociations": [
       {
         "ext": ["exlocal"],
-        "name": "ExLocal Backup",
-        "description": "ExLocal full data backup package",
+        "name": "Knowa Backup",
+        "description": "Knowa full data backup package",
         "mimeType": "application/vnd.exlocal.backup",
         "role": "Editor"
       },
       {
         "ext": ["exbank"],
-        "name": "ExLocal Question Bank",
-        "description": "ExLocal question bank exchange package",
+        "name": "Knowa Question Bank",
+        "description": "Knowa question bank exchange package",
         "mimeType": "application/vnd.exlocal.bank",
         "role": "Editor"
       }

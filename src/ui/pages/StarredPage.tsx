@@ -138,7 +138,7 @@ export function StarredPage() {
         exportQuestions.map((question) => ({ question })),
         { bankName: '收藏的题', includeAnswers: true, includeExplanations: true, includeNotes: false, includeStats: false },
       );
-      saveAs(blob, 'ExLocal-收藏的题.pdf');
+      saveAs(blob, 'Knowa-收藏的题.pdf');
     } catch (error) {
       notifications.show({ color: 'red', title: '导出失败', message: (error as Error).message });
     } finally {

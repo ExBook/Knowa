@@ -64,7 +64,7 @@ export async function chooseLocalDataDirectory(): Promise<LocalDataDirectoryStat
   const current = await getLocalDataDirectory();
   const { open } = await import('@tauri-apps/plugin-dialog');
   const selected = await open({
-    title: '选择 ExLocal 本地备份目录',
+    title: '选择 Knowa 本地备份目录',
     directory: true,
     multiple: false,
     recursive: true,

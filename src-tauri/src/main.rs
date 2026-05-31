@@ -6,6 +6,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use tauri::{Manager, RunEvent, WindowEvent};
+
 fn path_to_string(path: PathBuf) -> Result<String, String> {
     path.into_os_string()
         .into_string()
@@ -28,9 +30,32 @@ fn write_backup_file(directory: String, filename: String, bytes: Vec<u8>) -> Res
 }
 
 fn main() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![write_backup_file])
-        .run(tauri::generate_context!())
+        .on_window_event(|window, event| {
+            #[cfg(target_os = "macos")]
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
+        .build(tauri::generate_context!())
         .expect("error while running tauri application");
+
+    app.run(|app_handle, event| {
+        #[cfg(target_os = "macos")]
+        if let RunEvent::Reopen {
+            has_visible_windows,
+            ..
+        } = event
+        {
+            if !has_visible_windows {
+                if let Some(window) = app_handle.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+        }
+    });
 }

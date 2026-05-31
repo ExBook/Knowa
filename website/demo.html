@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Knowa 在线体验：在浏览器中运行真实 Knowa 应用，并自动准备包含多题型、多格式内容的示例题库。"
+    />
+    <title>Knowa 在线体验 | 真实网页端应用</title>
+    <meta name="theme-color" content="#fbf7ef" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="./assets/exlocal-logo.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="demo">
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="./index.html" aria-label="Knowa 首页">
+          <img src="./assets/exlocal-logo.svg" alt="" />
+          <span>Knowa</span>
+        </a>
+        <nav class="site-nav" aria-label="主导航">
+          <a href="./index.html">主页</a>
+          <a href="./tutorial.html">教程</a>
+          <a class="is-active" href="./demo.html">在线体验</a>
+          <a href="./changelog.html">更新日志</a>
+        </nav>
+        <div class="header-actions">
+          <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换明暗主题">
+            <span class="theme-toggle-icon" aria-hidden="true"></span>
+          </button>
+          <a class="button button-small button-primary" href="https://github.com/ExBook/Knowa/releases/tag/v0.1.0">下载</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="page-hero demo-hero demo-redirect" data-demo-redirect>
+        <div class="container">
+          <p class="section-kicker">在线体验</p>
+          <h1>正在打开 Knowa 网页版</h1>
+          <p>在线体验会进入真实 Knowa App 的网页版本，并自动准备一个综合示例题库，覆盖单选、多选、判断、公式、行内代码、代码块、图片、笔记和做题记录。</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="./app/">立即进入网页版</a>
+            <a class="button button-secondary" href="./tutorial.html">先看教程</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section mobile-demo-lock" data-mobile-demo-lock>
+        <div class="container">
+          <div class="lock-card">
+            <img src="./assets/exlocal-logo.svg" alt="" />
+            <h2>手机端暂不开放在线体验</h2>
+            <p>Knowa 的真实网页端包含题库列表、富文本题目、刷题、记录、笔记和导出等完整工作流，需要更宽的操作空间。请在桌面端打开本页面，或直接下载桌面应用。</p>
+            <a class="button button-primary" href="https://github.com/ExBook/Knowa/releases/tag/v0.1.0">下载桌面版</a>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <div class="brand footer-brand">
+          <img src="./assets/exlocal-logo.svg" alt="" />
+          <span>Knowa</span>
+        </div>
+        <div class="footer-links">
+          <a href="./index.html">主页</a>
+          <a href="./tutorial.html">教程</a>
+          <a href="https://github.com/ExBook/Knowa">GitHub</a>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

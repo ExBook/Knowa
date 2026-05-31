@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Knowa 使用教程：创建题库、录入题目、Markdown 导入、刷题、复盘、笔记、打印和本地备份。"
+    />
+    <title>Knowa 教程 | 从创建题库到完整复盘</title>
+    <meta name="theme-color" content="#fbf7ef" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="./assets/exlocal-logo.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="./index.html" aria-label="Knowa 首页">
+          <img src="./assets/exlocal-logo.svg" alt="" />
+          <span>Knowa</span>
+        </a>
+        <nav class="site-nav" aria-label="主导航">
+          <a href="./index.html">主页</a>
+          <a class="is-active" href="./tutorial.html">教程</a>
+          <a href="./demo.html">在线体验</a>
+          <a href="./changelog.html">更新日志</a>
+        </nav>
+        <div class="header-actions">
+          <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换明暗主题">
+            <span class="theme-toggle-icon" aria-hidden="true"></span>
+          </button>
+          <a class="button button-small button-primary" href="https://github.com/ExBook/Knowa/releases/tag/v0.1.0">下载</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="page-hero">
+        <div class="container">
+          <p class="section-kicker">使用教程</p>
+          <h1>从空白题库到第一轮复盘</h1>
+          <p>这份教程按真实学习流程编排。你可以先用在线体验练一遍，再把自己的资料迁移到桌面端长期维护。</p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container tutorial-layout">
+          <aside class="tutorial-toc" aria-label="教程目录">
+            <a href="#install">安装与数据</a>
+            <a href="#bank">创建题库</a>
+            <a href="#question">录入题目</a>
+            <a href="#markdown">Markdown 导入</a>
+            <a href="#quiz">开始刷题</a>
+            <a href="#review">复盘记录</a>
+            <a href="#export">导出与备份</a>
+            <a href="#desktop">桌面端建议</a>
+          </aside>
+
+          <div class="tutorial-content">
+            <article id="install" class="tutorial-card">
+              <h2>1. 安装与数据位置</h2>
+              <p>桌面端下载后直接安装。Knowa 的运行数据保存在本机，桌面端还可以在设置页指定固定备份目录。</p>
+              <ul>
+                <li>macOS：建议下载 Universal 包，兼容 Apple Silicon 与 Intel Mac。</li>
+                <li>Windows：普通电脑选择 x64 安装包。</li>
+                <li>Linux：优先使用 AppImage，或按发行版选择 deb/rpm。</li>
+              </ul>
+            </article>
+
+            <article id="bank" class="tutorial-card">
+              <h2>2. 创建你的第一个题库</h2>
+              <p>在题库页点击创建题库，填写名称、描述、标签和卡片颜色。题库卡片会显示题目数量、标签和做题进度条，后续搜索结果也会按题库抽屉组织。</p>
+              <div class="tip-box">建议按考试科目、课程或资料来源建立题库，例如“高等数学”“数据结构”“教师资格证”。</div>
+            </article>
+
+            <article id="question" class="tutorial-card">
+              <h2>3. 录入题目</h2>
+              <p>进入题库详情页后点击添加题目。题型支持单选、多选和判断。题目内容可以包含富文本、行内代码、代码块、行内公式、整行公式和图片。</p>
+              <ul>
+                <li>章节、节、知识点用于后续定向刷题。</li>
+                <li>图片可以调整缩放比例和对齐方式。</li>
+                <li>解析建议写出关键思路，复盘时比只看答案更有价值。</li>
+              </ul>
+            </article>
+
+            <article id="markdown" class="tutorial-card">
+              <h2>4. Markdown 批量导入</h2>
+              <p>适合一次性整理多道题。导入窗口提供不同题型模板，右侧实时预览会渲染代码和公式，格式错误会给出提醒。</p>
+              <pre><code>### 单选题：极限基础
+章节：高等数学
+节：函数与极限
+知识点：等价无穷小
+标签：基础, 高频
+
+题目：
+当 x -> 0 时，sin x 与 x 的比值极限是多少？
+
+A. 0
+B. 1
+C. 无穷大
+D. 不存在
+
+答案：B
+
+解析：
+由等价无穷小可知 $\\sin x \\sim x$，所以极限为 1。</code></pre>
+            </article>
+
+            <article id="quiz" class="tutorial-card">
+              <h2>5. 开始刷题</h2>
+              <p>刷题前可以选择模式、顺序和筛选范围。练习模式适合即时纠错，考试模式适合统一交卷。倒计时开启后，时间到会强制提交。</p>
+              <ul>
+                <li>题目过长时标题栏固定，内容区滚动。</li>
+                <li>未交卷返回时会确认，未交卷不会写入做题记录。</li>
+                <li>刷题页可调整阅读字体风格和字号。</li>
+              </ul>
+            </article>
+
+            <article id="review" class="tutorial-card">
+              <h2>6. 复盘错题、收藏和笔记</h2>
+              <p>答题完成页会显示题号导航，并用颜色区分正确、错误和未答。错题集、收藏和我的笔记都支持搜索、分组、选择性重做和导出。</p>
+              <div class="tip-box">我的笔记更适合记录“为什么会错”和“下次怎么判断”，不要只复制解析。</div>
+            </article>
+
+            <article id="export" class="tutorial-card">
+              <h2>7. 导出、打印和迁移</h2>
+              <p>题库、收藏、错题和笔记都支持选择性导出。PDF 会带 Knowa 标识，适合打印成试卷或整理成学术笔记。</p>
+              <ul>
+                <li><code>.exbank</code>：单个题库交换包。</li>
+                <li><code>.exlocal</code>：完整数据备份，包含图片、记录、设置和笔记。</li>
+                <li>换设备时先导出完整备份，再在新设备导入。</li>
+              </ul>
+            </article>
+
+            <article id="desktop" class="tutorial-card">
+              <h2>8. 桌面端长期使用建议</h2>
+              <p>在设置页指定固定备份目录，例如同步盘或专门的学习资料目录。这样每次导出完整备份都能进入同一个地方，便于版本管理和跨设备迁移。</p>
+              <div class="path-grid">
+                <code>macOS: ~/Library/Application Support/com.exbook.exlocal/backups</code>
+                <code>Windows: %LOCALAPPDATA%\com.exbook.exlocal\backups</code>
+                <code>Linux: ~/.local/share/com.exbook.exlocal/backups</code>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <div class="brand footer-brand">
+          <img src="./assets/exlocal-logo.svg" alt="" />
+          <span>Knowa</span>
+        </div>
+        <div class="footer-links">
+          <a href="./index.html">主页</a>
+          <a href="./demo.html">在线体验</a>
+          <a href="https://github.com/ExBook/Knowa">GitHub</a>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

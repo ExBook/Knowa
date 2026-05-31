@@ -506,7 +506,7 @@ export function QuizPage() {
             <Text size="xs" c="dimmed" mb={6}>
               预览
             </Text>
-            <Text className="quiz-font-preview-title">ExLocal Quiz Preview</Text>
+            <Text className="quiz-font-preview-title">Knowa Quiz Preview</Text>
             <Text className="quiz-font-preview-body">刷题阅读：极限、矩阵与 probability A/B/C/D。</Text>
           </Box>
         </Stack>

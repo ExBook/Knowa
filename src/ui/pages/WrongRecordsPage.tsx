@@ -152,7 +152,7 @@ export function WrongRecordsPage() {
         })),
         { bankName: '错题集', includeAnswers: true, includeExplanations: true, includeNotes: false, includeStats: false },
       );
-      saveAs(blob, 'ExLocal-错题集.pdf');
+      saveAs(blob, 'Knowa-错题集.pdf');
     } catch (error) {
       notifications.show({ color: 'red', title: '导出失败', message: (error as Error).message });
     } finally {

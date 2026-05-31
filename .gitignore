@@ -11,14 +11,17 @@ node_modules
 dist
 dist-ssr
 website/dist
+design-mockup/
 .vite
 src-tauri/target
+.playwright-cli/
 *.local
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
+.claude/
 .DS_Store
 *.suo
 *.ntvs*

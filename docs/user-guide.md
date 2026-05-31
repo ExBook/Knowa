@@ -1,8 +1,8 @@
-# ExLocal User Guide
+# Knowa User Guide
 
 Version: 0.1.0
 
-This guide describes the intended user workflows for ExLocal.
+This guide describes the intended user workflows for Knowa.
 
 ## 1. Create A Bank
 
