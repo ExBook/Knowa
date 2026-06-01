@@ -4,7 +4,7 @@ import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import type { Content } from 'pdfmake/interfaces';
 import type { Note, Question, QuizRecord } from '../shared/types';
-import { dataUrlToBase64DataUrl } from './dataUrl';
+import { bytesToBase64, dataUrlToBase64DataUrl, parseDataUrl } from './dataUrl';
 
 type PdfMakeApi = typeof pdfMake & {
   addVirtualFileSystem: (vfs: Record<string, string>) => void;
@@ -32,16 +32,13 @@ let cjkFontReady = false;
 const cjkFontFile = 'NotoSansCJKsc-Regular.otf';
 const cjkFontFamily = 'NotoSansCJKsc';
 
-function arrayBufferToBase64(buffer: ArrayBuffer): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener('load', () => {
-      const result = typeof reader.result === 'string' ? reader.result : '';
-      resolve(result.split(',')[1] ?? '');
-    });
-    reader.addEventListener('error', () => reject(reader.error ?? new Error('Unable to read font file')));
-    reader.readAsDataURL(new Blob([buffer]));
-  });
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  return bytesToBase64(new Uint8Array(buffer));
+}
+
+function assetUrl(path: string): string {
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  return `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}${path}`;
 }
 
 export async function initCJKFont(): Promise<void> {
@@ -50,13 +47,13 @@ export async function initCJKFont(): Promise<void> {
   }
 
   try {
-    const response = await fetch(`${import.meta.env.BASE_URL}fonts/${cjkFontFile}`);
+    const response = await fetch(assetUrl(`fonts/${cjkFontFile}`));
     if (!response.ok) {
       return;
     }
 
     const buffer = await response.arrayBuffer();
-    pdf.addVirtualFileSystem({ [cjkFontFile]: await arrayBufferToBase64(buffer) });
+    pdf.addVirtualFileSystem({ [cjkFontFile]: arrayBufferToBase64(buffer) });
     pdf.addFonts({
       [cjkFontFamily]: {
         normal: cjkFontFile,
@@ -74,9 +71,15 @@ export async function initCJKFont(): Promise<void> {
 type RichNode = {
   type?: string;
   text?: string;
-  attrs?: { alt?: string; src?: string; latex?: string };
+  attrs?: { alt?: string; src?: string; latex?: string; width?: number | string; align?: string };
   content?: RichNode[];
 };
+
+type PdfMargin = [number, number, number, number];
+type PdfAlignment = 'left' | 'center' | 'right';
+
+const pdfImageMaxWidth = 490;
+const pdfImageMaxHeight = 180;
 
 export function normalizePdfTextForLayout(text: string): string {
   return text.replace(/[^\s]{48,}/gu, (run) => {
@@ -132,6 +135,111 @@ function imageText(attrs: RichNode['attrs']): string {
   return alt ? `[图片: ${normalizePdfTextForLayout(alt)}]` : '[图片]';
 }
 
+function safeImageAlignment(value: unknown): PdfAlignment {
+  return value === 'left' || value === 'right' || value === 'center' ? value : 'center';
+}
+
+function safeImageWidthPercent(value: unknown): number {
+  const width = Number(value ?? 60);
+  if (!Number.isFinite(width)) {
+    return 60;
+  }
+  return Math.min(100, Math.max(20, width));
+}
+
+function imageFit(attrs: RichNode['attrs']): [number, number] {
+  return [Math.floor((pdfImageMaxWidth * safeImageWidthPercent(attrs?.width)) / 100), pdfImageMaxHeight];
+}
+
+function normalizeRasterImageDataUrl(src: string): string {
+  const normalized = src.includes(';base64,') ? src : dataUrlToBase64DataUrl(src);
+  return normalized.replace(/^data:image\/jpg;/i, 'data:image/jpeg;');
+}
+
+function dataUrlToText(dataUrl: string): string {
+  return new TextDecoder().decode(parseDataUrl(dataUrl).bytes);
+}
+
+function imageFallbackContent(attrs: RichNode['attrs'], margin: PdfMargin): Content {
+  return {
+    text: imageText(attrs),
+    margin,
+    fontSize: 10,
+    color: '#7a7568',
+  };
+}
+
+async function convertDataImageToPngDataUrl(src: string): Promise<string | null> {
+  if (typeof Image === 'undefined' || typeof document === 'undefined') {
+    return null;
+  }
+
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.addEventListener(
+      'load',
+      () => {
+        const width = image.naturalWidth || image.width;
+        const height = image.naturalHeight || image.height;
+        if (!width || !height) {
+          resolve(null);
+          return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d');
+        if (!context) {
+          resolve(null);
+          return;
+        }
+        context.drawImage(image, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      },
+      { once: true },
+    );
+    image.addEventListener('error', () => resolve(null), { once: true });
+    image.src = src.includes(';base64,') ? src : dataUrlToBase64DataUrl(src);
+  });
+}
+
+async function imageToPdfContent(attrs: RichNode['attrs'], margin: PdfMargin): Promise<Content> {
+  const src = attrs?.src?.trim();
+  if (!src) {
+    return imageFallbackContent(attrs, margin);
+  }
+
+  const base = {
+    fit: imageFit(attrs),
+    alignment: safeImageAlignment(attrs?.align),
+    margin,
+  };
+
+  try {
+    if (src.startsWith('data:image/svg+xml')) {
+      return { svg: dataUrlToText(src), ...base };
+    }
+
+    if (/^data:image\/(?:png|jpe?g);/i.test(src)) {
+      return { image: normalizeRasterImageDataUrl(src), ...base };
+    }
+
+    if (/^data:image\//i.test(src)) {
+      const converted = await convertDataImageToPngDataUrl(src);
+      return converted ? { image: converted, ...base } : imageFallbackContent(attrs, margin);
+    }
+
+    if (/^https?:\/\//i.test(src)) {
+      return { image: src, ...base };
+    }
+  } catch {
+    return imageFallbackContent(attrs, margin);
+  }
+
+  return imageFallbackContent(attrs, margin);
+}
+
 function inlineToText(nodes: RichNode[] | undefined): string {
   return normalizePdfTextForLayout(
     nodes
@@ -166,6 +274,37 @@ function tipTapToText(doc: unknown): string {
     })
     .filter(Boolean)
     .join('\n');
+}
+
+function docHasImage(doc: unknown): boolean {
+  if (Array.isArray(doc)) {
+    return doc.some(docHasImage);
+  }
+  if (!doc || typeof doc !== 'object') {
+    return false;
+  }
+  const node = doc as RichNode;
+  return node.type === 'image' || Boolean(node.content?.some(docHasImage));
+}
+
+async function tipTapToPdfBlocks(doc: unknown, margin: PdfMargin, textStyle: Record<string, unknown> = {}): Promise<Content[]> {
+  const root = doc as { content?: RichNode[] };
+  if (!root?.content) {
+    return [];
+  }
+
+  const blocks: Content[] = [];
+  for (const node of root.content) {
+    if (node.type === 'paragraph' || node.type === 'codeBlock') {
+      const text = inlineToText(node.content);
+      if (text.trim()) {
+        blocks.push({ text, margin, ...textStyle } as Content);
+      }
+    } else if (node.type === 'image') {
+      blocks.push(await imageToPdfContent(node.attrs, margin));
+    }
+  }
+  return blocks;
 }
 
 function typeLabel(type: Question['type']): string {
@@ -214,7 +353,7 @@ export async function generatePrecisePDF(questions: QuestionData[], options: Exp
     });
   }
 
-  questions.forEach(({ question, note }, index) => {
+  for (const [index, { question, note }] of questions.entries()) {
     content.push({
       text: [
         { text: `${index + 1}. `, bold: true },
@@ -223,7 +362,7 @@ export async function generatePrecisePDF(questions: QuestionData[], options: Exp
       ],
       margin: [0, 10, 0, 6],
     });
-    content.push({ text: tipTapToText(question.body), margin: [0, 0, 0, 6] });
+    content.push(...(await tipTapToPdfBlocks(question.body, [0, 0, 0, 6])));
 
     if (question.type === 'truefalse') {
       content.push({
@@ -231,47 +370,57 @@ export async function generatePrecisePDF(questions: QuestionData[], options: Exp
         margin: [14, 2, 0, 2],
       });
     } else {
-      question.options.forEach((option) => {
+      for (const option of question.options) {
         const isAnswer = options.includeAnswers && question.answer.includes(option.index);
-        content.push({
-          text: [
-            { text: `${String.fromCharCode(65 + option.index)}. `, bold: isAnswer },
-            { text: tipTapToText(option.content), bold: isAnswer },
-            isAnswer ? { text: ' ✓', color: '#5b8c5a', bold: true } : { text: '' },
-          ],
-          margin: [14, 2, 0, 2],
-        });
-      });
+        if (docHasImage(option.content)) {
+          content.push({
+            text: `${String.fromCharCode(65 + option.index)}.${isAnswer ? ' ✓' : ''}`,
+            bold: isAnswer,
+            color: isAnswer ? '#5b8c5a' : undefined,
+            margin: [14, 2, 0, 0],
+          });
+          content.push(...(await tipTapToPdfBlocks(option.content, [32, 2, 0, 2], isAnswer ? { bold: true } : {})));
+        } else {
+          content.push({
+            text: [
+              { text: `${String.fromCharCode(65 + option.index)}. `, bold: isAnswer },
+              { text: tipTapToText(option.content), bold: isAnswer },
+              isAnswer ? { text: ' ✓', color: '#5b8c5a', bold: true } : { text: '' },
+            ],
+            margin: [14, 2, 0, 2],
+          });
+        }
+      }
       if (options.includeAnswers) {
         content.push({ text: `答案: ${answerText(question)}`, margin: [14, 4, 0, 2], color: '#5b8c5a' });
       }
     }
 
     if (options.includeExplanations) {
-      const explanation = tipTapToText(question.explanation);
-      if (explanation.trim()) {
+      const explanationBlocks = await tipTapToPdfBlocks(question.explanation, [14, 2, 0, 4], { fontSize: 10, color: '#3b4b6b' });
+      if (explanationBlocks.length) {
         content.push({
-          text: [
-            { text: '解析: ', bold: true, fontSize: 10 },
-            { text: explanation, fontSize: 10 },
-          ],
-          margin: [14, 6, 0, 4],
+          text: '解析:',
+          bold: true,
+          fontSize: 10,
+          margin: [14, 6, 0, 0],
           color: '#3b4b6b',
         });
+        content.push(...explanationBlocks);
       }
     }
 
     if (options.includeNotes && note?.content) {
-      const noteText = tipTapToText(note.content);
-      if (noteText.trim()) {
+      const noteBlocks = await tipTapToPdfBlocks(note.content, [14, 2, 0, 4], { fontSize: 10, color: '#c4823d' });
+      if (noteBlocks.length) {
         content.push({
-          text: [
-            { text: '笔记: ', bold: true, fontSize: 10 },
-            { text: noteText, fontSize: 10 },
-          ],
-          margin: [14, 4, 0, 4],
+          text: '笔记:',
+          bold: true,
+          fontSize: 10,
+          margin: [14, 4, 0, 0],
           color: '#c4823d',
         });
+        content.push(...noteBlocks);
       }
     }
 
@@ -281,7 +430,7 @@ export async function generatePrecisePDF(questions: QuestionData[], options: Exp
         margin: [0, 8, 0, 0],
       });
     }
-  });
+  }
 
   const font = cjkFontReady ? cjkFontFamily : 'Roboto';
   return pdf.createPdf({
