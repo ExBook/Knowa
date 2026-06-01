@@ -1,9 +1,9 @@
 import { Accordion, ActionIcon, Badge, Box, Button, Checkbox, Group, LoadingOverlay, SegmentedControl, Text, TextInput, Title, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconDownload, IconPlayerPlay, IconSearch, IconStarFilled } from '@tabler/icons-react';
-import { saveAs } from 'file-saver';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { saveBlobToFile } from '../../services/exportFileService';
 import { generatePrecisePDF, initCJKFont } from '../../services/pdfExportService';
 import { questionService } from '../../services/questionService';
 import type { Question } from '../../shared/types';
@@ -138,7 +138,7 @@ export function StarredPage() {
         exportQuestions.map((question) => ({ question })),
         { bankName: '收藏的题', includeAnswers: true, includeExplanations: true, includeNotes: false, includeStats: false },
       );
-      saveAs(blob, 'Knowa-收藏的题.pdf');
+      await saveBlobToFile(blob, 'Knowa-收藏的题.pdf', '导出收藏题 PDF');
     } catch (error) {
       notifications.show({ color: 'red', title: '导出失败', message: (error as Error).message });
     } finally {

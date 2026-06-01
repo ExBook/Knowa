@@ -1,10 +1,11 @@
-import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 import { nanoid } from 'nanoid';
 import { bankRepo } from '../repo/bankRepo';
 import { db } from '../repo/db';
 import { questionRepo } from '../repo/questionRepo';
 import type { Bank, Note, Question, QuizRecord } from '../shared/types';
+import { dataUrlToBinaryString, imageExtensionFromDataUrl, mimeFromImageFilename } from './dataUrl';
+import { saveBlobToFile } from './exportFileService';
 
 interface BankExportData {
   version: 1;
@@ -107,28 +108,6 @@ function replaceImageRefs(doc: object, imageMap: Record<string, string>): object
   return walk(doc) as object;
 }
 
-function imageExtension(dataUrl: string): string {
-  const ext = dataUrl.match(/^data:image\/([^;]+)/)?.[1] ?? 'png';
-  if (ext === 'svg+xml') {
-    return 'svg';
-  }
-  if (ext === 'jpeg') {
-    return 'jpg';
-  }
-  return ext;
-}
-
-function mimeFromFilename(filename: string): string {
-  const ext = filename.split('.').pop()?.toLowerCase() ?? 'png';
-  if (ext === 'svg') {
-    return 'image/svg+xml';
-  }
-  if (ext === 'jpg') {
-    return 'image/jpeg';
-  }
-  return `image/${ext}`;
-}
-
 function extractImages(questions: Question[]): {
   images: Record<string, string>;
   questions: BankExportData['questions'];
@@ -137,7 +116,7 @@ function extractImages(questions: Question[]): {
   let index = 0;
 
   function nextName(dataUrl: string): string {
-    const ext = imageExtension(dataUrl);
+    const ext = imageExtensionFromDataUrl(dataUrl);
     index += 1;
     return `img_${index}.${ext}`;
   }
@@ -183,7 +162,7 @@ async function readBankArchive(file: File): Promise<{
   for (const path of imagePaths) {
     const filename = path.replace('images/', '');
     const data = await zip.file(path)!.async('base64');
-    imageMap[filename] = `data:${mimeFromFilename(filename)};base64,${data}`;
+    imageMap[filename] = `data:${mimeFromImageFilename(filename)};base64,${data}`;
   }
 
   return { bankData, recordsData, imageMap };
@@ -253,13 +232,13 @@ export async function exportBank(bankId: string, includeRecords: boolean): Promi
 
   const imageFolder = zip.folder('images');
   for (const [filename, dataUrl] of Object.entries(images)) {
-    imageFolder?.file(filename, dataUrl.split(',')[1] ?? '', { base64: true });
+    imageFolder?.file(filename, dataUrlToBinaryString(dataUrl), { binary: true });
   }
 
   return zip.generateAsync({ type: 'blob' });
 }
 
-export async function exportBankToFile(bankId: string, includeRecords: boolean): Promise<void> {
+export async function exportBankToFile(bankId: string, includeRecords: boolean): Promise<string | null> {
   const bank = await bankRepo.findById(bankId);
   if (!bank) {
     throw new Error('Bank not found');
@@ -267,7 +246,7 @@ export async function exportBankToFile(bankId: string, includeRecords: boolean):
 
   const blob = await exportBank(bankId, includeRecords);
   const suffix = includeRecords ? 'full' : 'share';
-  saveAs(blob, `${bank.name}-${suffix}.exbank`);
+  return saveBlobToFile(blob, `${bank.name}-${suffix}.exbank`, '导出 Knowa 题库包');
 }
 
 export async function importExbank(file: File): Promise<ImportResult> {

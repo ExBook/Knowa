@@ -4,6 +4,7 @@ import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import type { Content } from 'pdfmake/interfaces';
 import type { Note, Question, QuizRecord } from '../shared/types';
+import { dataUrlToBase64DataUrl } from './dataUrl';
 
 type PdfMakeApi = typeof pdfMake & {
   addVirtualFileSystem: (vfs: Record<string, string>) => void;
@@ -86,6 +87,44 @@ export function normalizePdfTextForLayout(text: string): string {
     }
     return chunks.join('\u200B');
   });
+}
+
+function normalizeInlineDataImagesForCanvas(element: HTMLElement): () => void {
+  const restored: Array<{ image: HTMLImageElement; src: string }> = [];
+  element.querySelectorAll<HTMLImageElement>('img').forEach((image) => {
+    const src = image.getAttribute('src');
+    if (!src?.startsWith('data:') || src.includes(';base64,')) {
+      return;
+    }
+
+    try {
+      const normalizedSrc = dataUrlToBase64DataUrl(src);
+      restored.push({ image, src });
+      image.setAttribute('src', normalizedSrc);
+    } catch {
+      // Leave unsupported inline images as-is; html2canvas will decide whether it can render them.
+    }
+  });
+
+  return () => {
+    restored.forEach(({ image, src }) => image.setAttribute('src', src));
+  };
+}
+
+async function waitForImages(element: HTMLElement): Promise<void> {
+  await Promise.all(
+    Array.from(element.querySelectorAll<HTMLImageElement>('img')).map(
+      (image) =>
+        new Promise<void>((resolve) => {
+          if (image.complete) {
+            resolve();
+            return;
+          }
+          image.addEventListener('load', () => resolve(), { once: true });
+          image.addEventListener('error', () => resolve(), { once: true });
+        }),
+    ),
+  );
 }
 
 function imageText(attrs: RichNode['attrs']): string {
@@ -283,55 +322,62 @@ export async function generatePrecisePDF(questions: QuestionData[], options: Exp
   }).getBlob();
 }
 
-export async function generateQuickPDF(element: HTMLElement, filename: string): Promise<void> {
-  const canvas = await html2canvas(element, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: '#ffffff',
-  });
+export async function generateQuickPDF(element: HTMLElement, filename: string): Promise<Blob> {
+  const restoreImages = normalizeInlineDataImagesForCanvas(element);
 
-  const document = new jsPDF({
-    orientation: 'portrait',
-    unit: 'px',
-    format: 'a4',
-  });
+  try {
+    await waitForImages(element);
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+    });
 
-  const pageWidth = document.internal.pageSize.getWidth();
-  const pageHeight = document.internal.pageSize.getHeight();
-  const margin = 28;
-  const headerHeight = 34;
-  const footerHeight = 24;
-  const contentWidth = pageWidth - margin * 2;
-  const contentHeight = pageHeight - margin * 2 - headerHeight - footerHeight;
-  const scale = contentWidth / canvas.width;
-  const sliceHeight = Math.floor(contentHeight / scale);
-  const pageCount = Math.max(1, Math.ceil(canvas.height / sliceHeight));
+    const pdfDocument = new jsPDF({
+      orientation: 'portrait',
+      unit: 'px',
+      format: 'a4',
+    });
 
-  for (let page = 0; page < pageCount; page += 1) {
-    if (page > 0) {
-      document.addPage();
+    const pageWidth = pdfDocument.internal.pageSize.getWidth();
+    const pageHeight = pdfDocument.internal.pageSize.getHeight();
+    const margin = 28;
+    const headerHeight = 34;
+    const footerHeight = 24;
+    const contentWidth = pageWidth - margin * 2;
+    const contentHeight = pageHeight - margin * 2 - headerHeight - footerHeight;
+    const scale = contentWidth / canvas.width;
+    const sliceHeight = Math.floor(contentHeight / scale);
+    const pageCount = Math.max(1, Math.ceil(canvas.height / sliceHeight));
+
+    for (let page = 0; page < pageCount; page += 1) {
+      if (page > 0) {
+        pdfDocument.addPage();
+      }
+
+      pdfDocument.setFontSize(11);
+      pdfDocument.setTextColor(59, 75, 107);
+      pdfDocument.text('Knowa', margin, margin);
+      pdfDocument.setFontSize(8);
+      pdfDocument.setTextColor(122, 117, 104);
+      pdfDocument.text('搭建你的个人题库', margin + 52, margin);
+
+      const sourceY = page * sliceHeight;
+      const pageCanvas = window.document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = Math.min(sliceHeight, canvas.height - sourceY);
+      const context = pageCanvas.getContext('2d');
+      context?.drawImage(canvas, 0, sourceY, canvas.width, pageCanvas.height, 0, 0, canvas.width, pageCanvas.height);
+      pdfDocument.addImage(pageCanvas.toDataURL('image/png'), 'PNG', margin, margin + headerHeight, contentWidth, pageCanvas.height * scale);
+
+      pdfDocument.setFontSize(8);
+      pdfDocument.setTextColor(168, 162, 148);
+      pdfDocument.text(`Knowa · ${filename}`, margin, pageHeight - margin + 6);
+      pdfDocument.text(`${page + 1} / ${pageCount}`, pageWidth - margin, pageHeight - margin + 6, { align: 'right' });
     }
 
-    document.setFontSize(11);
-    document.setTextColor(59, 75, 107);
-    document.text('Knowa', margin, margin);
-    document.setFontSize(8);
-    document.setTextColor(122, 117, 104);
-    document.text('搭建你的个人题库', margin + 52, margin);
-
-    const sourceY = page * sliceHeight;
-    const pageCanvas = window.document.createElement('canvas');
-    pageCanvas.width = canvas.width;
-    pageCanvas.height = Math.min(sliceHeight, canvas.height - sourceY);
-    const context = pageCanvas.getContext('2d');
-    context?.drawImage(canvas, 0, sourceY, canvas.width, pageCanvas.height, 0, 0, canvas.width, pageCanvas.height);
-    document.addImage(pageCanvas.toDataURL('image/png'), 'PNG', margin, margin + headerHeight, contentWidth, pageCanvas.height * scale);
-
-    document.setFontSize(8);
-    document.setTextColor(168, 162, 148);
-    document.text(`Knowa · ${filename}`, margin, pageHeight - margin + 6);
-    document.text(`${page + 1} / ${pageCount}`, pageWidth - margin, pageHeight - margin + 6, { align: 'right' });
+    return pdfDocument.output('blob') as Blob;
+  } finally {
+    restoreImages();
   }
-
-  document.save(`${filename}.pdf`);
 }

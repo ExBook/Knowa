@@ -1,11 +1,11 @@
 import { Accordion, ActionIcon, Badge, Box, Button, Checkbox, Group, LoadingOverlay, SegmentedControl, Text, TextInput, Title, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconDownload, IconPlayerPlay, IconSearch, IconStar, IconStarFilled } from '@tabler/icons-react';
-import { saveAs } from 'file-saver';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { quizRecordRepo } from '../../repo/quizRecordRepo';
 import { getAppSettings } from '../../services/appSettings';
+import { saveBlobToFile } from '../../services/exportFileService';
 import { generatePrecisePDF, initCJKFont } from '../../services/pdfExportService';
 import { questionService } from '../../services/questionService';
 import type { Question, QuizRecord } from '../../shared/types';
@@ -152,7 +152,7 @@ export function WrongRecordsPage() {
         })),
         { bankName: '错题集', includeAnswers: true, includeExplanations: true, includeNotes: false, includeStats: false },
       );
-      saveAs(blob, 'Knowa-错题集.pdf');
+      await saveBlobToFile(blob, 'Knowa-错题集.pdf', '导出错题集 PDF');
     } catch (error) {
       notifications.show({ color: 'red', title: '导出失败', message: (error as Error).message });
     } finally {

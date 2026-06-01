@@ -5,7 +5,7 @@ import { db } from '../../src/repo/db';
 import { noteRepo } from '../../src/repo/noteRepo';
 import { questionRepo } from '../../src/repo/questionRepo';
 import { quizRecordRepo } from '../../src/repo/quizRecordRepo';
-import { exportFullDataToFile, importFullDataFromFile } from '../../src/services/fullDataBackupService';
+import { createFullDataBackupBlob, exportFullDataToFile, importFullDataFromFile } from '../../src/services/fullDataBackupService';
 
 const { saveAsMock } = vi.hoisted(() => ({
   saveAsMock: vi.fn(),
@@ -82,5 +82,27 @@ describe('fullDataBackupService', () => {
     const restoredNote = await db.notes.where('questionId').equals(question.id).first();
     expect(restoredQuestion?.body.content[0].attrs.src).toBe(imageDataUrl);
     expect(restoredNote?.content.content[0].attrs.src).toBe(noteImageDataUrl);
+  });
+
+  it('exports non-base64 SVG data URL images into the backup package', async () => {
+    const svgDataUrl = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"><text>diagram</text></svg>';
+    const bank = await bankRepo.create({ name: 'SVG Backup Bank', description: '', tags: [] });
+    await questionRepo.create({
+      bankId: bank.id,
+      type: 'single',
+      body: imageDoc(svgDataUrl),
+      options: [
+        { index: 0, content: textDoc('A') },
+        { index: 1, content: textDoc('B') },
+      ],
+      answer: [0],
+      explanation: textDoc('Because'),
+      tags: [],
+    });
+
+    const blob = await createFullDataBackupBlob();
+    const zip = await JSZip.loadAsync(blob);
+
+    expect(await zip.file('images/img_1.svg')?.async('string')).toContain('<svg');
   });
 });

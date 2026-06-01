@@ -29,10 +29,37 @@ fn write_backup_file(directory: String, filename: String, bytes: Vec<u8>) -> Res
     path_to_string(target_file)
 }
 
+fn validate_export_file(path: &Path) -> Result<(), String> {
+    let extension = path
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+
+    if path.file_name().is_none() || !matches!(extension.as_str(), "exlocal" | "exbank" | "pdf") {
+        return Err("导出文件类型不受支持".to_string());
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn write_export_file(path: String, bytes: Vec<u8>) -> Result<String, String> {
+    let target_file = PathBuf::from(path);
+    validate_export_file(&target_file)?;
+
+    if let Some(directory) = target_file.parent() {
+        fs::create_dir_all(directory).map_err(|error| format!("创建导出目录失败：{error}"))?;
+    }
+
+    fs::write(&target_file, bytes).map_err(|error| format!("写入导出文件失败：{error}"))?;
+    path_to_string(target_file)
+}
+
 fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![write_backup_file])
+        .invoke_handler(tauri::generate_handler![write_backup_file, write_export_file])
         .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]
             if let WindowEvent::CloseRequested { api, .. } = event {

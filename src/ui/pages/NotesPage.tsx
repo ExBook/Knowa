@@ -2,11 +2,11 @@ import { Accordion, ActionIcon, Badge, Box, Button, Checkbox, Group, LoadingOver
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconCheck, IconDownload, IconEdit, IconPencil, IconSearch, IconX } from '@tabler/icons-react';
-import { saveAs } from 'file-saver';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { noteRepo } from '../../repo/noteRepo';
 import { quizRecordRepo } from '../../repo/quizRecordRepo';
+import { saveBlobToFile } from '../../services/exportFileService';
 import { generatePrecisePDF, initCJKFont } from '../../services/pdfExportService';
 import { questionService } from '../../services/questionService';
 import type { Note, Question, QuizRecord } from '../../shared/types';
@@ -165,7 +165,7 @@ export function NotesPage() {
           includeStats: false,
         },
       );
-      saveAs(blob, 'Knowa-我的笔记.pdf');
+      await saveBlobToFile(blob, 'Knowa-我的笔记.pdf', '导出我的笔记 PDF');
     } catch (error) {
       notifications.show({ color: 'red', title: '导出失败', message: (error as Error).message });
     } finally {

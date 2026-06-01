@@ -52,8 +52,10 @@ export function SettingsPage() {
   const handleExportAllData = async () => {
     setExportingData(true);
     try {
-      await exportFullDataToFile();
-      notifications.show({ color: 'green', title: '已导出', message: '完整数据备份已生成。' });
+      const targetFile = await exportFullDataToFile();
+      if (targetFile) {
+        notifications.show({ color: 'green', title: '已导出', message: `完整数据备份已生成：${targetFile}` });
+      }
     } catch (error) {
       notifications.show({ color: 'red', title: '导出失败', message: (error as Error).message });
     } finally {

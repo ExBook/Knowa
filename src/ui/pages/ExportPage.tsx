@@ -14,10 +14,10 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconArrowLeft, IconDownload } from '@tabler/icons-react';
-import { saveAs } from 'file-saver';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { quizRecordRepo } from '../../repo/quizRecordRepo';
+import { saveBlobToFile } from '../../services/exportFileService';
 import { generatePrecisePDF, generateQuickPDF, initCJKFont, type ExportOptions } from '../../services/pdfExportService';
 import { useBankStore } from '../../stores/bankStore';
 import { useNoteStore } from '../../stores/noteStore';
@@ -125,11 +125,12 @@ export function ExportPage() {
       if (layout === 'precise') {
         await initCJKFont();
         const blob = await generatePrecisePDF(data, options);
-        saveAs(blob, `${bank.name}.pdf`);
+        await saveBlobToFile(blob, `${bank.name}.pdf`, '导出 Knowa PDF');
       } else {
         const preview = document.getElementById('quick-pdf-preview');
         if (preview) {
-          await generateQuickPDF(preview, bank.name);
+          const blob = await generateQuickPDF(preview, bank.name);
+          await saveBlobToFile(blob, `${bank.name}.pdf`, '导出 Knowa PDF');
         }
       }
     } catch (error) {

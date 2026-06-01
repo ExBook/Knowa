@@ -1,8 +1,9 @@
-import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 import { db } from '../repo/db';
 import type { Bank, Note, Question, QuizRecord } from '../shared/types';
 import { defaultAppSettings, getAppSettings, saveAppSettings, type AppSettings } from './appSettings';
+import { dataUrlToBinaryString, imageExtensionFromDataUrl, mimeFromImageFilename } from './dataUrl';
+import { saveBlobToFile } from './exportFileService';
 import { isTauriRuntime, writeBlobToLocalDataDirectory } from './localDataDirectory';
 
 interface FullDataBackup {
@@ -53,28 +54,6 @@ function parseBackup(raw: string): FullDataBackup {
 export function backupFilename(): string {
   const date = new Date().toISOString().slice(0, 10);
   return `exlocal-backup-${date}.exlocal`;
-}
-
-function imageExtension(dataUrl: string): string {
-  const ext = dataUrl.match(/^data:image\/([^;]+)/)?.[1] ?? 'png';
-  if (ext === 'svg+xml') {
-    return 'svg';
-  }
-  if (ext === 'jpeg') {
-    return 'jpg';
-  }
-  return ext;
-}
-
-function mimeFromFilename(filename: string): string {
-  const ext = filename.split('.').pop()?.toLowerCase() ?? 'png';
-  if (ext === 'svg') {
-    return 'image/svg+xml';
-  }
-  if (ext === 'jpg') {
-    return 'image/jpeg';
-  }
-  return `image/${ext}`;
 }
 
 function cloneWithImageExport(doc: object, images: Record<string, string>, nextName: (dataUrl: string) => string): object {
@@ -153,7 +132,7 @@ function extractBackupImages(questions: Question[], notes: Note[]): {
   let index = 0;
   const nextName = (dataUrl: string) => {
     index += 1;
-    return `img_${index}.${imageExtension(dataUrl)}`;
+    return `img_${index}.${imageExtensionFromDataUrl(dataUrl)}`;
   };
 
   return {
@@ -181,7 +160,7 @@ async function parseZipBackup(file: File): Promise<FullDataBackup> {
   for (const path of imagePaths) {
     const filename = path.replace('images/', '');
     const data = await zip.file(path)!.async('base64');
-    imageMap[filename] = `data:${mimeFromFilename(filename)};base64,${data}`;
+    imageMap[filename] = `data:${mimeFromImageFilename(filename)};base64,${data}`;
   }
 
   return {
@@ -216,14 +195,14 @@ export async function createFullDataBackupBlob(): Promise<Blob> {
   zip.file('backup.json', JSON.stringify(backup, null, 2));
   const imageFolder = zip.folder('images');
   for (const [filename, dataUrl] of Object.entries(extracted.images)) {
-    imageFolder?.file(filename, dataUrl.split(',')[1] ?? '', { base64: true });
+    imageFolder?.file(filename, dataUrlToBinaryString(dataUrl), { binary: true });
   }
 
   return zip.generateAsync({ type: 'blob' });
 }
 
-export async function exportFullDataToFile(): Promise<void> {
-  saveAs(await createFullDataBackupBlob(), backupFilename());
+export async function exportFullDataToFile(): Promise<string | null> {
+  return saveBlobToFile(await createFullDataBackupBlob(), backupFilename(), '导出 Knowa 全部数据');
 }
 
 export async function backupFullDataToLocalDirectory(directory?: string): Promise<string> {

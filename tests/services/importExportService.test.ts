@@ -5,6 +5,7 @@ import { questionRepo } from '../../src/repo/questionRepo';
 import { exportBank, importExbank, importExbankIntoBank } from '../../src/services/importExportService';
 
 const textDoc = (text: string) => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] });
+const imageDoc = (src: string) => ({ type: 'doc', content: [{ type: 'image', attrs: { src, alt: 'diagram' } }] });
 
 async function createBankWithQuestion() {
   const bank = await bankRepo.create({ name: 'Export Bank', description: 'shareable', tags: ['tag'] });
@@ -60,5 +61,28 @@ describe('importExportService', () => {
     expect(result.questionCount).toBe(1);
     expect(targetQuestions).toHaveLength(1);
     await expect(db.banks.get(target.id)).resolves.toMatchObject({ questionCount: 1 });
+  });
+
+  it('exports non-base64 SVG data URL images into an exbank archive', async () => {
+    const svgDataUrl = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"><text>diagram</text></svg>';
+    const bank = await bankRepo.create({ name: 'SVG Bank', description: '', tags: [] });
+    await questionRepo.create({
+      bankId: bank.id,
+      type: 'single',
+      body: imageDoc(svgDataUrl),
+      options: [
+        { index: 0, content: textDoc('A') },
+        { index: 1, content: textDoc('B') },
+      ],
+      answer: [0],
+      explanation: textDoc('Because'),
+      tags: [],
+    });
+
+    const file = await exportedFile(bank.id);
+    const result = await importExbank(file);
+    const importedQuestions = await questionRepo.findByBankId(result.bank.id);
+
+    expect(importedQuestions[0].body).toEqual(imageDoc('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0PmRpYWdyYW08L3RleHQ+PC9zdmc+'));
   });
 });
